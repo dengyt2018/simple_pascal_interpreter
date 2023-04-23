@@ -91,13 +91,20 @@ pub mod learn_parser {
 
     impl Lexer {
         pub fn new<S: AsRef<str>>(text: S) -> Self {
-            let text = text
+            let mut text = text
                 .as_ref()
                 .as_bytes()
                 .iter()
                 .map(|c| *c as char)
                 .collect::<Vec<_>>();
-            let current_char = text[0];
+            let mut current_char = '\0';
+
+            if !text.is_empty() {
+                current_char = text[0];
+            } else {
+                text = vec!['\0'];
+            }
+
             Self {
                 text,
                 pos: 0,
@@ -411,5 +418,19 @@ mod tests {
         assert_eq!(22, result("7 + 3 * (10 / (12 / (3 + 1) - 1))"));
         assert_eq!(12, result("7 + (((3 + 2)))"));
         assert_eq!(13, result("5+2*(3+1)"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_empty() {
+        let result = |s: &str| -> i64 { Interpreter::new(Parser::new(Lexer::new(s))).interpret() };
+        result("");
+    }
+
+    #[test]
+    fn test_print_tree() {
+        let k = Parser::new(Lexer::new("-125 + 15")).parser();
+
+        eprintln!("{k:#?}");
     }
 }

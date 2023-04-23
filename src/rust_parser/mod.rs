@@ -6,3 +6,4 @@ pub mod cal5;
 pub mod cal6;
 pub mod cal7;
 pub mod cal8;
+pub mod spi9;
