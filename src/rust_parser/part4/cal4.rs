@@ -170,7 +170,7 @@ pub mod learn_parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::cal4::learn_parser::Interpreter;
+    use super::learn_parser::*;
 
     #[test]
     fn test_4() {

@@ -143,41 +143,43 @@ pub mod learn_parser {
             }
         }
 
+        fn term(&mut self) -> i64 {
+            let i = self.current_token_to_integer();
+            self.eat(Integer);
+            i
+        }
+
         pub fn expr(&mut self) -> i64 {
             self.current_token = self.get_next_token();
 
-            let left = self.current_token_to_integer();
-            self.eat(Integer);
+            let mut result = self.term();
 
-            let op = self.get_current_token_type();
-            if op == Plus {
-                self.eat(Plus);
-            } else {
-                self.eat(Minus);
+            while self.get_current_token_type() == Plus || self.get_current_token_type() == Minus {
+                if self.get_current_token_type() == Plus {
+                    self.eat(Plus);
+                    result += self.term();
+                } else if self.get_current_token_type() == Minus {
+                    self.eat(Minus);
+                    result -= self.term();
+                }
             }
-
-            let right = self.current_token_to_integer();
-            self.eat(Integer);
-
-            if op == Plus {
-                left + right
-            } else {
-                left - right
-            }
+            result
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::cal2::learn_parser::Interpreter;
+    use super::learn_parser::*;
 
     #[test]
-    fn test_2() {
+    fn test_3() {
         let interpreter = |s| -> i64 { Interpreter::new(s).expr() };
 
-        assert_eq!(30, interpreter("15+15 "));
-        assert_eq!(-20, interpreter("7 - 27 "));
-        assert_eq!(-100, interpreter("12 - 112 "));
+        assert_eq!(15, interpreter("15"));
+        assert_eq!(3, interpreter("7 - 4 "));
+        assert_eq!(5, interpreter("7 - 3 + 2 -1"));
+        assert_eq!(5, interpreter("10 +1 +2 -3 + 4 + 6 -15"));
+        assert_eq!(15, interpreter("15+0000"));
     }
 }

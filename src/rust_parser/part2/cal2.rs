@@ -2,15 +2,13 @@
 pub mod learn_parser {
     use std::fmt::{Display, Formatter};
 
-    use TokenType::{Div, Eof, Integer, Minus, Mul, Plus};
+    use TokenType::{Eof, Integer, Minus, Plus};
 
     #[derive(Debug, Eq, PartialEq, Copy, Clone)]
     pub enum TokenType {
         Integer,
-        Mul,
-        Div,
-        Minus,
         Plus,
+        Minus,
         Eof,
     }
 
@@ -37,17 +35,11 @@ pub mod learn_parser {
                 Eof => {
                     write!(f, "Eof")
                 }
-                Mul => {
-                    write!(f, "*")
-                }
-                Div => {
-                    write!(f, "/")
+                Plus => {
+                    write!(f, "+")
                 }
                 Minus => {
                     write!(f, "-")
-                }
-                Plus => {
-                    write!(f, "+")
                 }
             }
         }
@@ -59,13 +51,14 @@ pub mod learn_parser {
         }
     }
 
-    pub struct Lexer {
+    pub struct Interpreter {
         text: Vec<char>,
         pos: usize,
+        current_token: Token,
         current_char: char,
     }
 
-    impl Lexer {
+    impl Interpreter {
         pub fn new<S: AsRef<str>>(text: S) -> Self {
             let text = text
                 .as_ref()
@@ -73,10 +66,13 @@ pub mod learn_parser {
                 .iter()
                 .map(|c| *c as char)
                 .collect::<Vec<_>>();
+
             let current_char = text[0];
+
             Self {
                 text,
                 pos: 0,
+                current_token: Token::new(Eof, "None"),
                 current_char,
             }
         }
@@ -90,6 +86,10 @@ pub mod learn_parser {
             }
         }
 
+        fn get_current_token_type(&self) -> TokenType {
+            self.current_token.token_type
+        }
+
         fn integer(&mut self) -> String {
             let mut result = vec![];
             while self.current_char != '\0' && self.current_char.is_ascii_digit() {
@@ -99,17 +99,20 @@ pub mod learn_parser {
             result.iter().collect::<String>()
         }
 
+        fn current_token_to_integer(&self) -> i64 {
+            self.current_token
+                .token_value
+                .as_bytes()
+                .iter()
+                .map(|c| *c as char)
+                .collect::<String>()
+                .parse::<i64>()
+                .expect("Error parser input")
+        }
+
         pub fn get_next_token(&mut self) -> Token {
             while self.current_char != '\0' {
                 match self.current_char {
-                    '*' => {
-                        self.advance();
-                        return Token::new(Mul, "*");
-                    }
-                    '/' => {
-                        self.advance();
-                        return Token::new(Div, "/");
-                    }
                     '+' => {
                         self.advance();
                         return Token::new(Plus, "+");
@@ -131,93 +134,50 @@ pub mod learn_parser {
             }
             Token::new(Eof, "None")
         }
-    }
-
-    pub struct Interpreter {
-        lexer: Lexer,
-        current_token: Token,
-    }
-
-    impl Interpreter {
-        pub fn new(mut lexer: Lexer) -> Self {
-            let current_token = lexer.get_next_token();
-            Self {
-                lexer,
-                current_token,
-            }
-        }
-
-        fn token_type(&self) -> TokenType {
-            self.current_token.token_type
-        }
-
-        fn to_integer(&self) -> i64 {
-            self.current_token
-                .token_value
-                .as_bytes()
-                .iter()
-                .map(|c| *c as char)
-                .collect::<String>()
-                .parse::<i64>()
-                .expect("Error parser input current_token_to_integer")
-        }
 
         fn eat(&mut self, token_type: TokenType) {
-            if self.token_type() == token_type {
-                self.current_token = self.lexer.get_next_token();
+            if self.current_token.token_type == token_type {
+                self.current_token = self.get_next_token();
             } else {
-                panic!("Error parsing input eat");
+                panic!("Error parsing input");
             }
-        }
-
-        fn factor(&mut self) -> i64 {
-            let i = self.to_integer();
-            self.eat(Integer);
-            i
-        }
-
-        fn term(&mut self) -> i64 {
-            let mut result = self.factor();
-
-            while self.token_type() == Mul || self.token_type() == Div {
-                if self.token_type() == Mul {
-                    self.eat(Mul);
-                    result *= self.factor();
-                } else if self.token_type() == Div {
-                    self.eat(Div);
-                    result /= self.factor();
-                }
-            }
-            result
         }
 
         pub fn expr(&mut self) -> i64 {
-            let mut result = self.term();
-            while self.token_type() == Plus || self.token_type() == Minus {
-                if self.token_type() == Plus {
-                    self.eat(Plus);
-                    result += self.term();
-                } else if self.token_type() == Minus {
-                    self.eat(Minus);
-                    result -= self.term();
-                }
+            self.current_token = self.get_next_token();
+
+            let left = self.current_token_to_integer();
+            self.eat(Integer);
+
+            let op = self.get_current_token_type();
+            if op == Plus {
+                self.eat(Plus);
+            } else {
+                self.eat(Minus);
             }
-            result
+
+            let right = self.current_token_to_integer();
+            self.eat(Integer);
+
+            if op == Plus {
+                left + right
+            } else {
+                left - right
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::cal5::learn_parser::{Interpreter, Lexer};
+    use super::learn_parser::*;
 
     #[test]
-    fn test_5() {
-        let interpreter = |s: &str| -> i64 { Interpreter::new(Lexer::new(s)).expr() };
+    fn test_2() {
+        let interpreter = |s| -> i64 { Interpreter::new(s).expr() };
 
-        assert_eq!(3, interpreter("3"));
-        assert_eq!(26, interpreter("7*4-2"));
-        assert_eq!(5, interpreter("7 - 8 / 4"));
-        assert_eq!(17, interpreter("14 +2 * 3 -6 / 2"));
+        assert_eq!(30, interpreter("15+15 "));
+        assert_eq!(-20, interpreter("7 - 27 "));
+        assert_eq!(-100, interpreter("12 - 112 "));
     }
 }

@@ -9,6 +9,7 @@ description = "The Book Language Implementation Patterns rust version"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+num-traits = "0.2"
 
 [profile.release]
 debug = 0         # No debug info at all

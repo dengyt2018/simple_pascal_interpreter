@@ -2,7 +2,7 @@
 pub mod learn_parser {
     use std::fmt::{Display, Formatter};
 
-    use TokenType::{Div, Eof, Integer, Lbrack, Minus, Mul, Plus, Rbrack};
+    use TokenType::{Div, Eof, Integer, Minus, Mul, Plus};
 
     #[derive(Debug, Eq, PartialEq, Copy, Clone)]
     pub enum TokenType {
@@ -11,8 +11,6 @@ pub mod learn_parser {
         Div,
         Minus,
         Plus,
-        Lbrack,
-        Rbrack,
         Eof,
     }
 
@@ -51,19 +49,13 @@ pub mod learn_parser {
                 Plus => {
                     write!(f, "+")
                 }
-                Lbrack => {
-                    write!(f, "(")
-                }
-                Rbrack => {
-                    write!(f, ")")
-                }
             }
         }
     }
 
     impl Display for Token {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "Token<{},{}>", self.token_type, self.token_value)
+            write!(f, "Token({},{})", self.token_type, self.token_value)
         }
     }
 
@@ -126,14 +118,6 @@ pub mod learn_parser {
                         self.advance();
                         return Token::new(Minus, "-");
                     }
-                    '(' => {
-                        self.advance();
-                        return Token::new(Lbrack, "(");
-                    }
-                    ')' => {
-                        self.advance();
-                        return Token::new(Rbrack, ")");
-                    }
                     _ => {
                         if self.current_char.is_whitespace() {
                             self.advance();
@@ -187,17 +171,9 @@ pub mod learn_parser {
         }
 
         fn factor(&mut self) -> i64 {
-            let mut result = 0;
-            if self.token_type() == Integer {
-                result = self.to_integer();
-                self.eat(Integer);
-            }
-            if self.token_type() == Lbrack {
-                self.eat(Lbrack);
-                result = self.expr();
-                self.eat(Rbrack);
-            }
-            result
+            let i = self.to_integer();
+            self.eat(Integer);
+            i
         }
 
         fn term(&mut self) -> i64 {
@@ -233,22 +209,15 @@ pub mod learn_parser {
 
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::cal6::learn_parser::{Interpreter, Lexer};
+    use super::learn_parser::*;
 
     #[test]
-    fn test_6() {
+    fn test_5() {
         let interpreter = |s: &str| -> i64 { Interpreter::new(Lexer::new(s)).expr() };
 
         assert_eq!(3, interpreter("3"));
         assert_eq!(26, interpreter("7*4-2"));
         assert_eq!(5, interpreter("7 - 8 / 4"));
         assert_eq!(17, interpreter("14 +2 * 3 -6 / 2"));
-        assert_eq!(22, interpreter("7 + 3 * (10 / (12 / (3 + 1) - 1))"));
-        assert_eq!(
-            10,
-            interpreter("7 + 3 * (10 / (12 / (3 + 1) - 1)) / (2 + 3) - 5 - 3 + (8)")
-        );
-        assert_eq!(12, interpreter("7+ (((3 + 2)))"));
-        assert_ne!(5, interpreter("1 + ( 1 + 1) +1)+ 1"));
     }
 }

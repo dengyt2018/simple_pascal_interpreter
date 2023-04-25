@@ -4,13 +4,14 @@ pub mod learn_parser {
     use std::fmt::{Display, Formatter};
     use std::rc::Rc;
 
-    use TokenType::{Div, Eof, Integer, Lbrack, Minus, Mul, Plus, Rbrack};
+    use TokenType::{Div, Eof, Integer, Lbrack, Minus, Modulo, Mul, Plus, Rbrack};
 
     #[derive(Debug, Eq, PartialEq, Copy, Clone)]
     pub enum TokenType {
         Integer,
         Mul,
         Div,
+        Modulo,
         Minus,
         Plus,
         Lbrack,
@@ -36,7 +37,7 @@ pub mod learn_parser {
     impl Default for Token {
         fn default() -> Self {
             Self {
-                token_type: Eof,
+                token_type: TokenType::Eof,
                 token_value: "None".to_string(),
             }
         }
@@ -56,6 +57,9 @@ pub mod learn_parser {
                 }
                 Div => {
                     write!(f, "/")
+                }
+                Modulo => {
+                    write!(f, "%")
                 }
                 Minus => {
                     write!(f, "-")
@@ -87,13 +91,20 @@ pub mod learn_parser {
 
     impl Lexer {
         pub fn new<S: AsRef<str>>(text: S) -> Self {
-            let text = text
+            let mut text = text
                 .as_ref()
                 .as_bytes()
                 .iter()
                 .map(|c| *c as char)
                 .collect::<Vec<_>>();
-            let current_char = text[0];
+            let mut current_char = '\0';
+
+            if !text.is_empty() {
+                current_char = text[0];
+            } else {
+                text = vec!['\0'];
+            }
+
             Self {
                 text,
                 pos: 0,
@@ -130,6 +141,10 @@ pub mod learn_parser {
                         self.advance();
                         return Token::new(Div, "/");
                     }
+                    '%' => {
+                        self.advance();
+                        return Token::new(Modulo, "%");
+                    }
                     '+' => {
                         self.advance();
                         return Token::new(Plus, "+");
@@ -161,61 +176,70 @@ pub mod learn_parser {
         }
     }
 
+    #[derive(Debug, Clone)]
+    pub enum Operation {
+        Num(Token),
+        Unary(Token),
+        Binop(Token),
+    }
+
+    impl Operation {
+        pub fn get_op(&self) -> &Token {
+            match self {
+                Operation::Num(t) => t,
+                Operation::Unary(t) => t,
+                Operation::Binop(t) => t,
+            }
+        }
+    }
+
     #[derive(Debug)]
     pub struct ASTTree {
         left: Option<Rc<RefCell<ASTTree>>>,
-        token: Token,
+        op: Operation,
         right: Option<Rc<RefCell<ASTTree>>>,
+        expr: Option<Rc<RefCell<ASTTree>>>,
     }
 
     impl ASTTree {
         pub fn new(
             left: Rc<RefCell<ASTTree>>,
-            token: Token,
+            op: Operation,
             right: Rc<RefCell<ASTTree>>,
         ) -> Rc<RefCell<Self>> {
             let tree = Self {
                 left: Option::Some(left),
-                token,
+                op,
                 right: Option::Some(right),
+                expr: None,
             };
             let p = Rc::new(RefCell::new(tree));
 
             Rc::clone(&p)
         }
 
-        pub fn set_token(&mut self, token: Token) {
-            self.token = token;
+        pub fn set_token(&mut self, op: Operation) {
+            self.op = op;
+        }
+
+        pub fn set_expr(&mut self, expr: Option<ASTTree>) {
+            if let Some(e) = expr {
+                let p = Rc::new(RefCell::new(e));
+                self.expr = Option::Some(Rc::clone(&p));
+            } else {
+                self.expr = None;
+            }
         }
     }
 
     impl Default for ASTTree {
         fn default() -> Self {
-            let token = Token::new(Eof, "None");
+            let op = Operation::Binop(Token::new(Eof, "None"));
             Self {
                 left: None,
-                token,
+                op,
                 right: None,
-            }
-        }
-    }
-
-    impl Clone for ASTTree {
-        fn clone(&self) -> Self {
-            let token = self.token.clone();
-            let mut left = Rc::new(RefCell::new(ASTTree::default()));
-            let mut right = Rc::new(RefCell::new(ASTTree::default()));
-            if let Some(l) = self.left.clone() {
-                left = l;
-            }
-            if let Some(r) = self.right.clone() {
-                right = r;
-            }
-
-            Self {
-                left: Option::Some(left),
-                token,
-                right: Option::Some(right),
+                expr: None,
             }
         }
     }
@@ -242,11 +266,12 @@ pub mod learn_parser {
 
         fn factor(&mut self) -> ASTTree {
             let token = self.current_token.clone();
+            let mut node = ASTTree::default();
+
             match token.token_type {
                 Integer => {
                     self.eat(Integer);
-                    let mut node = ASTTree::default();
-                    node.set_token(token);
+                    node.set_token(Operation::Num(token));
                     node
                 }
                 Lbrack => {
@@ -255,6 +280,19 @@ pub mod learn_parser {
                     self.eat(Rbrack);
                     node
                 }
+                Plus => {
+                    self.eat(Plus);
+                    node.set_token(Operation::Unary(token));
+                    node.set_expr(Option::Some(self.factor()));
+                    node
+                }
+                Minus => {
+                    self.eat(Minus);
+                    node.set_token(Operation::Unary(token));
+                    node.set_expr(Option::Some(self.factor()));
+                    node
+                }
+
                 _ => panic!(
                     "factor token type why are you here? found {}",
                     token.token_type.to_string()
@@ -271,10 +309,13 @@ pub mod learn_parser {
                     self.eat(Mul)
                 } else if token.token_type == Div {
                     self.eat(Div);
+                } else if token.token_type == Modulo {
+                    self.eat(Modulo);
                 }
                 let left = Rc::new(RefCell::new(node));
                 let right = Rc::new(RefCell::new(self.factor()));
-                node = ASTTree::new(Rc::clone(&left), token, Rc::clone(&right)).take();
+                node = ASTTree::new(Rc::clone(&left), Operation::Binop(token), Rc::clone(&right))
+                    .take();
             }
 
             node
@@ -292,7 +333,8 @@ pub mod learn_parser {
                 }
                 let left = Rc::new(RefCell::new(node));
                 let right = Rc::new(RefCell::new(self.term()));
-                node = ASTTree::new(Rc::clone(&left), token, Rc::clone(&right)).take();
+                node = ASTTree::new(Rc::clone(&left), Operation::Binop(token), Rc::clone(&right))
+                    .take();
             }
 
             node
@@ -313,36 +355,44 @@ pub mod learn_parser {
         }
 
         fn visit(&mut self, node: ASTTree) -> i64 {
-            let node_type = node.token.token_type;
-            match node_type {
-                Mul | Div | Plus | Minus => self.visit_binop(node),
-                Integer => self.visit_num(node),
-                _ => panic!("visit error, found {}", node_type.to_string()),
+            let op = node.op.clone();
+            match op {
+                Operation::Num(_) => self.visit_num(node),
+                Operation::Unary(_) => self.visit_unary(node),
+                Operation::Binop(_) => self.visit_binop(node),
             }
         }
 
         fn visit_binop(&mut self, node: ASTTree) -> i64 {
-            let op = node.token.token_type;
-            let node_left = node.left.unwrap();
-            let node_right = node.right.unwrap();
+            let left = self.visit(node.left.unwrap().take());
+            let right = self.visit(node.right.unwrap().take());
+            let op = node.op.get_op().clone();
 
-            let left = self.visit(node_left.take());
-            let right = self.visit(node_right.take());
-
-            match op {
-                Minus => left - right,
-                Plus => left + right,
+            match op.token_type {
                 Mul => left * right,
                 Div => left / right,
-                _ => panic!("visit binop error, found {}", op.to_string()),
+                Minus => left - right,
+                Plus => left + right,
+                _ => todo!(),
             }
         }
 
         fn visit_num(&mut self, node: ASTTree) -> i64 {
-            node.token
+            let token = node.op.get_op().clone();
+            token
                 .token_value
                 .parse::<i64>()
-                .unwrap_or_else(|_| panic!("Parser num error, found {}", node.token.token_value))
+                .unwrap_or_else(|_| panic!("Parser token value error: {}", token.to_string()))
+        }
+
+        fn visit_unary(&mut self, node: ASTTree) -> i64 {
+            let op = node.op.get_op().clone();
+
+            match op.token_type {
+                Minus => -self.visit(node.expr.unwrap().take()),
+                Plus => self.visit(node.expr.unwrap().take()),
+                _ => todo!(),
+            }
         }
 
         pub fn interpret(&mut self) -> i64 {
@@ -355,19 +405,32 @@ pub mod learn_parser {
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::cal7::learn_parser::{Interpreter, Lexer, Parser};
+    use super::learn_parser::*;
 
     #[test]
-    fn test_7() {
+    fn test_8() {
         let result = |s: &str| -> i64 { Interpreter::new(Parser::new(Lexer::new(s))).interpret() };
 
-        assert_eq!(5, result("5"));
-        assert_eq!(6, result("5+1"));
-        assert_eq!(11, result("5+2*3"));
-        assert_eq!(13, result("5+2*(3+1)"));
+        assert_eq!(-1, result("-1"));
+        assert_eq!(0, result("-(--1 -1)"));
+        assert_eq!(-1, result("-(--1 -1)-1"));
+        assert_eq!(-1, result("-(-++-1 ++-1)---1"));
         assert_eq!(22, result("7 + 3 * (10 / (12 / (3 + 1) - 1))"));
         assert_eq!(12, result("7 + (((3 + 2)))"));
-        assert_ne!(3, result("1 (1+2)")); // bug
-        assert_ne!(5, result("1+(1+1)+1)+1)")); // bug
+        assert_eq!(13, result("5+2*(3+1)"));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_empty() {
+        let result = |s: &str| -> i64 { Interpreter::new(Parser::new(Lexer::new(s))).interpret() };
+        result("");
+    }
+
+    #[test]
+    fn test_print_tree() {
+        let k = Parser::new(Lexer::new("-125 + 15")).parser();
+
+        eprintln!("{k:#?}");
     }
 }

@@ -584,7 +584,6 @@ pub mod pascal_parser {
                 }
                 Minus => {
                     self.eat(Minus);
-                    self.eat(Plus);
                     node.set_stat(Statements::UnaryOp {
                         token,
                         expr: Rc::new(RefCell::new(self.factor())),
@@ -810,7 +809,7 @@ pub mod pascal_parser {
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::spi9::pascal_parser::{Interpreter, Lexer, Parser, Token, TokenType};
+    use super::pascal_parser::*;
 
     #[test]
     fn test_9_lexer() {
