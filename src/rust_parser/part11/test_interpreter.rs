@@ -1,8 +1,8 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::part10::spi10::pascal_parser::{
-        Interpreter, Lexer, Parser, Token, TokenType,
+    use crate::rust_parser::part11::spi11::pascal_parser::{
+        Interpreter, Lexer, Parser, SymbolTableBuilder, Token, TokenType,
     };
     use num_traits::{Float, Num};
     use std::collections::HashMap;
@@ -10,7 +10,7 @@ mod tests {
     use std::result;
 
     #[test]
-    fn test_10_lexer() {
+    fn test_11_lexer() {
         let str = "PROGRAM Test;
 VAR
     a, c : INTEGER;
@@ -178,5 +178,34 @@ END.  {Part10}
         assert_eq!(27, *results.get("c").unwrap() as i64);
         assert_eq!(11, *results.get("x").unwrap() as i64);
         assert_eq!(20_f64 / 7_f64 + 3.24, *results.get("y").unwrap());
+    }
+
+    #[test]
+    fn test_symbols() {
+        let input = "
+PROGRAM Part10;
+VAR
+    number     : INTEGER;
+    a, b, c, x : INTEGER;
+    y          : REAL;
+
+BEGIN {Part10}
+    BEGIN
+        number := 2;
+        a := number;
+        b := 10 * a + 10 * number DIV 4;
+        c := a - - b
+    END;
+    x := 11;
+    y := 20 / 7 + 3.24;
+END.  {Part10}
+"
+        .to_string();
+
+        let node = Parser::new(Lexer::new(input)).parser();
+
+        let k = SymbolTableBuilder::new()._visit(node);
+
+        eprintln!("{}", k);
     }
 }
