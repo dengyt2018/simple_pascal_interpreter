@@ -1,29 +1,41 @@
-//#[allow(dead_code, unused, unused_variables, unused_imports)]
+#[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
+    use crate::rust_parser::part12::spi12::pascal_parser::{
+        Interpreter, Lexer, Parser, SymbolTableBuilder, Token, TokenType,
+    };
     use std::fs::File;
     use std::io::Read;
 
-    use crate::rust_parser::part11::spi11::pascal_parser::{
-        Interpreter, Lexer, Parser, SymbolTableBuilder, Token, TokenType,
-    };
-
     #[test]
-    fn test_11_lexer() {
-        let str = "PROGRAM Test;
+    fn test_12_lexer() {
+        let str = "PROGRAM Part12;
 VAR
     a, c : INTEGER;
-    number: REAL;
-BEGIN
-        a := 125 DIV 3.14 / {pass comment} 12;
-        number := 2.5 * 2.0; 
-END."
+
+PROCEDURE P1;
+VAR
+    a, c : REAL;
+    k: INTEGER;
+    PROCEDURE P2;
+        VAR
+            a, z : INTEGER;
+        BEGIN {P2}
+            z := 777;
+        END; {P2}
+
+BEGIN {P1}
+
+END; {P1}
+BEGIN {Part12}
+    a := 10;
+END. {Part12}"
             .to_string();
 
         let mut lexer = Lexer::new(str);
         let tokens = vec![
             Token::new(TokenType::Program, "PROGRAM"),
-            Token::new(TokenType::Id, "Test"),
+            Token::new(TokenType::Id, "Part12"),
             Token::new(TokenType::Semi, ";"),
             Token::new(TokenType::Var, "VAR"),
             Token::new(TokenType::Id, "a"),
@@ -32,24 +44,44 @@ END."
             Token::new(TokenType::Colon, ":"),
             Token::new(TokenType::Integer, "INTEGER"),
             Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Id, "number"),
+            Token::new(TokenType::Procedure, "PROCEDURE"),
+            Token::new(TokenType::Id, "P1"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Var, "VAR"),
+            Token::new(TokenType::Id, "a"),
+            Token::new(TokenType::Comma, ","),
+            Token::new(TokenType::Id, "c"),
             Token::new(TokenType::Colon, ":"),
             Token::new(TokenType::Real, "REAL"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Id, "k"),
+            Token::new(TokenType::Colon, ":"),
+            Token::new(TokenType::Integer, "INTEGER"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Procedure, "PROCEDURE"),
+            Token::new(TokenType::Id, "P2"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Var, "VAR"),
+            Token::new(TokenType::Id, "a"),
+            Token::new(TokenType::Comma, ","),
+            Token::new(TokenType::Id, "z"),
+            Token::new(TokenType::Colon, ":"),
+            Token::new(TokenType::Integer, "INTEGER"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Begin, "BEGIN"),
+            Token::new(TokenType::Id, "z"),
+            Token::new(TokenType::Assign, ":="),
+            Token::new(TokenType::IntegerConst, "777"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::End, "END"),
+            Token::new(TokenType::Semi, ";"),
+            Token::new(TokenType::Begin, "BEGIN"),
+            Token::new(TokenType::End, "END"),
             Token::new(TokenType::Semi, ";"),
             Token::new(TokenType::Begin, "BEGIN"),
             Token::new(TokenType::Id, "a"),
             Token::new(TokenType::Assign, ":="),
-            Token::new(TokenType::IntegerConst, "125"),
-            Token::new(TokenType::IntegerDiv, "DIV"),
-            Token::new(TokenType::RealConst, "3.14"),
-            Token::new(TokenType::FloatDiv, "/"),
-            Token::new(TokenType::IntegerConst, "12"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Id, "number"),
-            Token::new(TokenType::Assign, ":="),
-            Token::new(TokenType::RealConst, "2.5"),
-            Token::new(TokenType::Mul, "*"),
-            Token::new(TokenType::RealConst, "2.0"),
+            Token::new(TokenType::IntegerConst, "10"),
             Token::new(TokenType::Semi, ";"),
             Token::new(TokenType::End, "END"),
             Token::new(TokenType::Dot, "."),
@@ -150,82 +182,46 @@ END."
     #[test]
     fn test_statements() {
         let input = "
-PROGRAM Part10;
+PROGRAM Part12;
 VAR
-    number     : INTEGER;
-    a, b, c, x : INTEGER;
-    y          : REAL;
+    number : INTEGER;
+    a, b   : INTEGER;
+    y      : REAL;
 
-BEGIN {Part10}
-    BEGIN
-        number := 2;
-        a := number;
-        b := 10 * a + 10 * number DIV 4;
-        c := a - - b
-    END;
-    x := 11;
-    y := 20 / 7 + 3.24;
-END.  {Part10}
+PROCEDURE P1;
+VAR
+    a : REAL;
+    k : INTEGER;
+    PROCEDURE P2;
+    VAR
+        a, z : INTEGER;
+    BEGIN {P2}
+        z := 777;
+    END;  {P2}
+BEGIN {P1}
+
+END;  {P1}
+
+BEGIN {Part12}
+    number := 2;
+    a := number ;
+    b := 10 * a + 10 * number DIV 4;
+    y := 20 / 7 + 3.24
+END.  {Part12}
 "
         .to_string();
 
         let results = Interpreter::<f64>::new(Parser::new(Lexer::new(input))).interpret();
-        assert_eq!(results.len(), 6);
+        assert_eq!(results.len(), 4);
         assert_eq!(2, *results.get("number").unwrap() as i64);
         assert_eq!(2, *results.get("a").unwrap() as i64);
         assert_eq!(25, *results.get("b").unwrap() as i64);
-        assert_eq!(27, *results.get("c").unwrap() as i64);
-        assert_eq!(11, *results.get("x").unwrap() as i64);
         assert_eq!(20_f64 / 7_f64 + 3.24, *results.get("y").unwrap());
     }
 
     #[test]
-    fn test_symbols() {
-        let input = "
-PROGRAM Part10;
-VAR
-    number     : INTEGER;
-    a, b, c, x : INTEGER;
-    y          : REAL;
-
-BEGIN {Part10}
-    BEGIN
-        number := 2;
-        a := number;
-        b := 10 * a + 10 * number DIV 4;
-        c := a - - b
-    END;
-    x := 11;
-    y := 20 / 7 + 3.24;
-END.  {Part10}
-"
-        .to_string();
-
-        let node = Parser::new(Lexer::new(input)).parser();
-
-        let k = SymbolTableBuilder::new()._visit(node);
-
-        eprintln!("{}", k);
-    }
-
-    #[test]
-
     fn test_file() {
         let path = "./src/rust_parser/part11/part12.pas";
-        do_test_file(path);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_file2() {
-        let path = "./src/rust_parser/part11/nameerror2.pas";
-        do_test_file(path);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_file3() {
-        let path = "./src/rust_parser/part11/nameerror1.pas";
         do_test_file(path);
     }
 
