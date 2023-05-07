@@ -1,14 +1,14 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::part14::spi14::pascal_parser::{
+    use crate::rust_parser::part15::spi15::pascal_parser::{
         Interpreter, Lexer, Parser, SemanticAnalyzer, Token, TokenType,
     };
     use std::fs::File;
     use std::io::Read;
 
     #[test]
-    fn test_14_lexer() {
+    fn test_15_lexer() {
         let str = "PROGRAM Part12;
 VAR
     a, c : INTEGER;
@@ -17,7 +17,7 @@ PROCEDURE P1;
 VAR
     a, c : REAL;
     k: INTEGER;
-    PROCEDURE P2;
+    PROCEDURE P2(a : INTEGER);
         VAR
             a, z : INTEGER;
         BEGIN {P2}
@@ -34,58 +34,63 @@ END. {Part12}"
 
         let mut lexer = Lexer::new(str);
         let tokens = vec![
-            Token::new(TokenType::Program, "PROGRAM"),
-            Token::new(TokenType::Id, "Part12"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Var, "VAR"),
-            Token::new(TokenType::Id, "a"),
-            Token::new(TokenType::Comma, ","),
-            Token::new(TokenType::Id, "c"),
-            Token::new(TokenType::Colon, ":"),
-            Token::new(TokenType::Integer, "INTEGER"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Procedure, "PROCEDURE"),
-            Token::new(TokenType::Id, "P1"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Var, "VAR"),
-            Token::new(TokenType::Id, "a"),
-            Token::new(TokenType::Comma, ","),
-            Token::new(TokenType::Id, "c"),
-            Token::new(TokenType::Colon, ":"),
-            Token::new(TokenType::Real, "REAL"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Id, "k"),
-            Token::new(TokenType::Colon, ":"),
-            Token::new(TokenType::Integer, "INTEGER"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Procedure, "PROCEDURE"),
-            Token::new(TokenType::Id, "P2"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Var, "VAR"),
-            Token::new(TokenType::Id, "a"),
-            Token::new(TokenType::Comma, ","),
-            Token::new(TokenType::Id, "z"),
-            Token::new(TokenType::Colon, ":"),
-            Token::new(TokenType::Integer, "INTEGER"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Begin, "BEGIN"),
-            Token::new(TokenType::Id, "z"),
-            Token::new(TokenType::Assign, ":="),
-            Token::new(TokenType::IntegerConst, "777"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::End, "END"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Begin, "BEGIN"),
-            Token::new(TokenType::End, "END"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::Begin, "BEGIN"),
-            Token::new(TokenType::Id, "a"),
-            Token::new(TokenType::Assign, ":="),
-            Token::new(TokenType::IntegerConst, "10"),
-            Token::new(TokenType::Semi, ";"),
-            Token::new(TokenType::End, "END"),
-            Token::new(TokenType::Dot, "."),
-            Token::new(TokenType::Eof, "EOF"),
+            Token::new(TokenType::Program, "PROGRAM").set_lineno_column(1, 8),
+            Token::new(TokenType::Id, "Part12").set_lineno_column(1, 15),
+            Token::new(TokenType::Semi, ";").set_lineno_column(1, 16),
+            Token::new(TokenType::Var, "VAR").set_lineno_column(2, 4),
+            Token::new(TokenType::Id, "a").set_lineno_column(3, 6),
+            Token::new(TokenType::Comma, ",").set_lineno_column(3, 7),
+            Token::new(TokenType::Id, "c").set_lineno_column(3, 9),
+            Token::new(TokenType::Colon, ":").set_lineno_column(3, 11),
+            Token::new(TokenType::Integer, "INTEGER").set_lineno_column(3, 19),
+            Token::new(TokenType::Semi, ";").set_lineno_column(3, 20),
+            Token::new(TokenType::Procedure, "PROCEDURE").set_lineno_column(5, 10),
+            Token::new(TokenType::Id, "P1").set_lineno_column(5, 13),
+            Token::new(TokenType::Semi, ";").set_lineno_column(5, 14),
+            Token::new(TokenType::Var, "VAR").set_lineno_column(6, 4),
+            Token::new(TokenType::Id, "a").set_lineno_column(7, 6),
+            Token::new(TokenType::Comma, ",").set_lineno_column(7, 7),
+            Token::new(TokenType::Id, "c").set_lineno_column(7, 9),
+            Token::new(TokenType::Colon, ":").set_lineno_column(7, 11),
+            Token::new(TokenType::Real, "REAL").set_lineno_column(7, 16),
+            Token::new(TokenType::Semi, ";").set_lineno_column(7, 17),
+            Token::new(TokenType::Id, "k").set_lineno_column(8, 6),
+            Token::new(TokenType::Colon, ":").set_lineno_column(8, 7),
+            Token::new(TokenType::Integer, "INTEGER").set_lineno_column(8, 15),
+            Token::new(TokenType::Semi, ";").set_lineno_column(8, 16),
+            Token::new(TokenType::Procedure, "PROCEDURE").set_lineno_column(9, 14),
+            Token::new(TokenType::Id, "P2").set_lineno_column(9, 17),
+            Token::new(TokenType::Lbrack, "(").set_lineno_column(9, 18),
+            Token::new(TokenType::Id, "a").set_lineno_column(9, 19),
+            Token::new(TokenType::Colon, ":").set_lineno_column(9, 21),
+            Token::new(TokenType::Integer, "INTEGER").set_lineno_column(9, 29),
+            Token::new(TokenType::Rbrack, ")").set_lineno_column(9, 30),
+            Token::new(TokenType::Semi, ";").set_lineno_column(9, 31),
+            Token::new(TokenType::Var, "VAR").set_lineno_column(10, 12),
+            Token::new(TokenType::Id, "a").set_lineno_column(11, 14),
+            Token::new(TokenType::Comma, ",").set_lineno_column(11, 15),
+            Token::new(TokenType::Id, "z").set_lineno_column(11, 17),
+            Token::new(TokenType::Colon, ":").set_lineno_column(11, 19),
+            Token::new(TokenType::Integer, "INTEGER").set_lineno_column(11, 27),
+            Token::new(TokenType::Semi, ";").set_lineno_column(11, 28),
+            Token::new(TokenType::Begin, "BEGIN").set_lineno_column(12, 14),
+            Token::new(TokenType::Id, "z").set_lineno_column(13, 14),
+            Token::new(TokenType::Assign, ":=").set_lineno_column(13, 17),
+            Token::new(TokenType::IntegerConst, "777").set_lineno_column(13, 21),
+            Token::new(TokenType::Semi, ";").set_lineno_column(13, 22),
+            Token::new(TokenType::End, "END").set_lineno_column(14, 12),
+            Token::new(TokenType::Semi, ";").set_lineno_column(14, 13),
+            Token::new(TokenType::Begin, "BEGIN").set_lineno_column(16, 6),
+            Token::new(TokenType::End, "END").set_lineno_column(18, 4),
+            Token::new(TokenType::Semi, ";").set_lineno_column(18, 5),
+            Token::new(TokenType::Begin, "BEGIN").set_lineno_column(19, 6),
+            Token::new(TokenType::Id, "a").set_lineno_column(20, 6),
+            Token::new(TokenType::Assign, ":=").set_lineno_column(20, 9),
+            Token::new(TokenType::IntegerConst, "10").set_lineno_column(20, 12),
+            Token::new(TokenType::Semi, ";").set_lineno_column(20, 13),
+            Token::new(TokenType::End, "END").set_lineno_column(21, 4),
+            Token::new(TokenType::Dot, ".").set_lineno_column(21, 5),
+            Token::new(TokenType::Eof, "EOF").set_lineno_column(21, 13),
         ];
 
         tokens
@@ -240,6 +245,7 @@ END.  {Part12}";
 begin { Main }
 end.  { Main }
 ";
+
     #[test]
     fn test_statements() {
         let results = Interpreter::<f64>::new(Parser::new(Lexer::new(INPUT))).interpret();
@@ -260,12 +266,26 @@ end.  { Main }
 
     #[test]
     #[should_panic]
-    fn test_files() {
-        let path = "./src/rust_parser/part14/dupiderror.pas";
+    fn test_symbol_not_found() {
+        let path = "./src/rust_parser/part15/dupiderror.pas";
         if let Ok(mut file) = File::open(path) {
             let mut buff = String::new();
             file.read_to_string(&mut buff).expect("read file error");
             SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(buff)).parser());
         }
+    }
+
+    const UNEXPECTED_TOKEN: &str = "
+        PROGRAM Test;
+        VAR
+            a : REAL {error here}
+        BEGIN
+            a := 1.5 {TODO miss semi should be panic}
+        END.
+        ";
+    #[test]
+    #[should_panic]
+    fn test_unexpected_token() {
+        Parser::new(Lexer::new(UNEXPECTED_TOKEN)).parser();
     }
 }

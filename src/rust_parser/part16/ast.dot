@@ -1,0 +1,63 @@
+digraph astgraph {
+    node [shape=circle, fontsize=12, fontname="Courier", height=.1];
+    ranksep=.3;
+    edge [arrowsize=.5]
+
+    node1 [label="Program"]
+    node2 [label="Block"]
+    node3 [label="ProcDecl:Alpha"]
+    node4 [label="Param"]
+    node5 [label="a"]
+    node4 -> node5
+    node6 [label="integer"]
+    node4 -> node6
+    node3 -> node4
+    node7 [label="Param"]
+    node8 [label="b"]
+    node7 -> node8
+    node9 [label="integer"]
+    node7 -> node9
+    node3 -> node7
+    node10 [label="Block"]
+    node11 [label="VarDecl"]
+    node12 [label="x"]
+    node11 -> node12
+    node13 [label="integer"]
+    node11 -> node13
+    node14 [label="Compound"]
+    node15 [label=":="]
+    node16 [label="x"]
+    node15 -> node16
+    node17 [label=Mul]
+    node18 [label=Plus]
+    node19 [label="a"]
+    node18 -> node19
+    node20 [label="b"]
+    node18 -> node20
+    node17 -> node18
+    node21 [label="2"]
+    node17 -> node21
+    node15 -> node17
+    node14 -> node15
+    node22 [label="NoOp"]
+    node14 -> node22
+    node10 -> node11
+    node10 -> node14
+    node3 -> node10
+    node23 [label="Compound"]
+    node24 [label="ProcCall:Alpha"]
+    node25 [label=Plus]
+    node26 [label="3"]
+    node25 -> node26
+    node27 [label="5"]
+    node25 -> node27
+    node24 -> node25
+    node28 [label="7"]
+    node24 -> node28
+    node23 -> node24
+    node29 [label="NoOp"]
+    node23 -> node29
+    node2 -> node3
+    node2 -> node23
+    node1 -> node2
+}
