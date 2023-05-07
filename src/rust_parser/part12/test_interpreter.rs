@@ -221,7 +221,7 @@ END.  {Part12}
 
     #[test]
     fn test_file() {
-        let path = "./src/rust_parser/part11/part12.pas";
+        let path = "./src/rust_parser/part12/part14.pas";
         do_test_file(path);
     }
 
