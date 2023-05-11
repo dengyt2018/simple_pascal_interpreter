@@ -85,7 +85,7 @@ pub mod gen_ast_dot {
             self.dot_body
                 .push(format!("    node{} [label=\"Program\"]\n", self.node_count));
 
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
 
             self.node_count += 1;
 
@@ -103,7 +103,7 @@ pub mod gen_ast_dot {
         fn visit_block(&mut self, node: Rc<RefCell<ASTTree>>) {
             self.dot_body
                 .push(format!("    node{} [label=\"Block\"]\n", self.node_count));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Statements::Block {
@@ -136,7 +136,7 @@ pub mod gen_ast_dot {
             self.dot_body
                 .push(format!("    node{} [label=\"VarDecl\"]\n", self.node_count));
 
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Statements::VarDecl {
@@ -175,7 +175,7 @@ pub mod gen_ast_dot {
                     self.node_count,
                     proc_name.get_value()
                 ));
-                node.borrow_mut()._num = self.node_count.clone();
+                node.borrow_mut()._num = self.node_count;
                 self.node_count += 1;
 
                 params.iter().for_each(|param| {
@@ -201,7 +201,7 @@ pub mod gen_ast_dot {
             self.dot_body
                 .push(format!("    node{} [label=\"Param\"]\n", self.node_count));
 
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Statements::Param {
@@ -236,7 +236,7 @@ pub mod gen_ast_dot {
                 proc_name.get_value()
             ));
 
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             actual_params.iter().for_each(|param| {
@@ -255,7 +255,7 @@ pub mod gen_ast_dot {
                 "    node{} [label=\"{}\"]\n",
                 self.node_count, type_name
             ));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
         }
 
@@ -266,7 +266,7 @@ pub mod gen_ast_dot {
                 node.borrow().stat.get_num()
             ));
 
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
         }
 
@@ -276,7 +276,7 @@ pub mod gen_ast_dot {
                 self.node_count,
                 node.borrow().stat.get_token().token_type()
             ));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Some(left) = node.borrow().left.clone() {
@@ -307,7 +307,7 @@ pub mod gen_ast_dot {
                     self.node_count,
                     token.get_value()
                 ));
-                node.borrow_mut()._num = self.node_count.clone();
+                node.borrow_mut()._num = self.node_count;
                 self.node_count += 1;
 
                 self.visit(Rc::clone(&expr));
@@ -325,7 +325,7 @@ pub mod gen_ast_dot {
                 "    node{} [label=\"Compound\"]\n",
                 self.node_count
             ));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Statements::Compound { children } = node.borrow().stat.clone() {
@@ -347,7 +347,7 @@ pub mod gen_ast_dot {
                 self.node_count,
                 node.borrow().stat.get_token().get_value()
             ));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
 
             if let Some(left) = node.borrow().left.clone() {
@@ -375,14 +375,14 @@ pub mod gen_ast_dot {
                 self.node_count,
                 node.borrow().stat.get_token().get_value()
             ));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
         }
 
         fn visit_noop(&mut self, node: Rc<RefCell<ASTTree>>) {
             self.dot_body
                 .push(format!("    node{} [label=\"NoOp\"]\n", self.node_count));
-            node.borrow_mut()._num = self.node_count.clone();
+            node.borrow_mut()._num = self.node_count;
             self.node_count += 1;
         }
 
