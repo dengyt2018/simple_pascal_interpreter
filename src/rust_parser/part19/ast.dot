@@ -1,0 +1,113 @@
+digraph astgraph {
+    node [shape=circle, fontsize=12, fontname="Courier", height=.1];
+    ranksep=.3;
+    edge [arrowsize=.5]
+
+    node1 [label="Program"]
+    node2 [label="Block"]
+    node3 [label="ProcDecl:Alpha"]
+    node4 [label="Param"]
+    node5 [label="a"]
+    node4 -> node5
+    node6 [label="integer"]
+    node4 -> node6
+    node3 -> node4
+    node7 [label="Param"]
+    node8 [label="b"]
+    node7 -> node8
+    node9 [label="integer"]
+    node7 -> node9
+    node3 -> node7
+    node10 [label="Block"]
+    node11 [label="VarDecl"]
+    node12 [label="x"]
+    node11 -> node12
+    node13 [label="integer"]
+    node11 -> node13
+    node14 [label="ProcDecl:Beta"]
+    node15 [label="Param"]
+    node16 [label="a"]
+    node15 -> node16
+    node17 [label="integer"]
+    node15 -> node17
+    node14 -> node15
+    node18 [label="Param"]
+    node19 [label="b"]
+    node18 -> node19
+    node20 [label="integer"]
+    node18 -> node20
+    node14 -> node18
+    node21 [label="Block"]
+    node22 [label="VarDecl"]
+    node23 [label="x"]
+    node22 -> node23
+    node24 [label="integer"]
+    node22 -> node24
+    node25 [label="Compound"]
+    node26 [label=":="]
+    node27 [label="x"]
+    node26 -> node27
+    node28 [label=Plus]
+    node29 [label=Mul]
+    node30 [label="a"]
+    node29 -> node30
+    node31 [label="10"]
+    node29 -> node31
+    node28 -> node29
+    node32 [label=Mul]
+    node33 [label="b"]
+    node32 -> node33
+    node34 [label="2"]
+    node32 -> node34
+    node28 -> node32
+    node26 -> node28
+    node25 -> node26
+    node35 [label="NoOp"]
+    node25 -> node35
+    node21 -> node22
+    node21 -> node25
+    node14 -> node21
+    node36 [label="Compound"]
+    node37 [label=":="]
+    node38 [label="x"]
+    node37 -> node38
+    node39 [label=Mul]
+    node40 [label=Plus]
+    node41 [label="a"]
+    node40 -> node41
+    node42 [label="b"]
+    node40 -> node42
+    node39 -> node40
+    node43 [label="2"]
+    node39 -> node43
+    node37 -> node39
+    node36 -> node37
+    node44 [label="ProcCall:Beta"]
+    node45 [label="5"]
+    node44 -> node45
+    node46 [label="10"]
+    node44 -> node46
+    node36 -> node44
+    node47 [label="NoOp"]
+    node36 -> node47
+    node10 -> node11
+    node10 -> node14
+    node10 -> node36
+    node3 -> node10
+    node48 [label="Compound"]
+    node49 [label="ProcCall:Alpha"]
+    node50 [label=Plus]
+    node51 [label="3"]
+    node50 -> node51
+    node52 [label="5"]
+    node50 -> node52
+    node49 -> node50
+    node53 [label="7"]
+    node49 -> node53
+    node48 -> node49
+    node54 [label="NoOp"]
+    node48 -> node54
+    node2 -> node3
+    node2 -> node48
+    node1 -> node2
+}

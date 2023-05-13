@@ -3,17 +3,17 @@ pub mod pascal_parser {
     use core::fmt;
     use std::cell::RefCell;
     use std::collections::{HashMap, LinkedList};
-    use std::fmt::{write, Display, Formatter};
+    use std::fmt::Display;
     use std::rc::Rc;
     use std::str::FromStr;
-
-    use num_traits::{Float, Num};
 
     use TokenType::{
         Assign, Begin, Colon, Comma, Dot, End, Eof, FloatDiv, Id, Integer, IntegerConst,
         IntegerDiv, Lbrack, Minus, Modulo, Mul, Plus, Procedure, Program, Rbrack, Real, RealConst,
         Semi, Var,
     };
+
+    type RefAST = Rc<RefCell<ASTTree>>;
 
     #[derive(Debug, Eq, PartialEq, Copy, Clone)]
     pub enum TokenType {
@@ -188,6 +188,7 @@ pub mod pascal_parser {
         }
     }
 
+    #[derive(Default)]
     pub struct Lexer {
         text: Vec<char>,
         pos: usize,
@@ -250,7 +251,7 @@ pub mod pascal_parser {
             }
         }
 
-        fn integer(&mut self, mut result: &mut Vec<char>) {
+        fn integer(&mut self, result: &mut Vec<char>) {
             while self.current_char != '\0' && self.current_char.is_ascii_digit() {
                 result.push(self.current_char);
                 self.advance();
@@ -263,7 +264,7 @@ pub mod pascal_parser {
         fn number(&mut self) -> Token {
             let mut result = vec![];
             self.integer(&mut result);
-            let mut token = Token::default().set_pos(self);
+            let token = Token::default().set_pos(self);
 
             if self.current_char == '.' {
                 result.push(self.current_char);
@@ -290,7 +291,7 @@ pub mod pascal_parser {
             }
             let token_name = buffer.iter().collect::<String>();
 
-            let mut token = Token::default().set_pos(self);
+            let token = Token::default().set_pos(self);
 
             if let Ok(key) = ReservedKeywords::from_str(&token_name) {
                 match key {
@@ -315,7 +316,7 @@ pub mod pascal_parser {
             apart into tokens. One token at a time.
         */
         pub fn get_next_token(&mut self) -> Token {
-            let mut token = Token::default();
+            let token = Token::default();
             while self.current_char != '\0' {
                 match self.current_char {
                     '*' => {
@@ -403,36 +404,36 @@ pub mod pascal_parser {
         },
         UnaryOp {
             token: Token,
-            expr: Rc<RefCell<ASTTree>>,
+            expr: RefAST,
         },
         Program {
             name: String,
-            block: Rc<RefCell<ASTTree>>,
+            block: RefAST,
         },
         Param {
-            var_name: Rc<RefCell<ASTTree>>,
-            var_type: Rc<RefCell<ASTTree>>,
+            var_name: RefAST,
+            var_type: RefAST,
         },
         Compound {
-            children: Rc<RefCell<Vec<Rc<RefCell<ASTTree>>>>>,
+            children: Rc<RefCell<Vec<RefAST>>>,
         },
         Block {
-            declaration: Rc<RefCell<Vec<Rc<RefCell<ASTTree>>>>>,
-            compound_statement: Rc<RefCell<ASTTree>>,
+            declaration: Rc<RefCell<Vec<RefAST>>>,
+            compound_statement: RefAST,
         },
 
         VarDecl {
-            var_node: Rc<RefCell<ASTTree>>,
-            type_node: Rc<RefCell<ASTTree>>,
+            var_node: RefAST,
+            type_node: RefAST,
         },
         ProcedureDecl {
             proc_name: Token,
-            params: Vec<Rc<RefCell<ASTTree>>>,
-            block_node: Rc<RefCell<ASTTree>>,
+            params: Vec<RefAST>,
+            block_node: RefAST,
         },
         ProcedureCall {
             proc_name: Token,
-            actual_params: Vec<Rc<RefCell<ASTTree>>>,
+            actual_params: Vec<RefAST>,
         },
     }
 
@@ -446,9 +447,9 @@ pub mod pascal_parser {
             }
         }
 
-        pub fn get_unary(&self) -> (Token, Rc<RefCell<ASTTree>>) {
+        pub fn get_unary(&self) -> (Token, RefAST) {
             match self {
-                Statements::UnaryOp { token, expr } => (token.clone(), expr.clone()),
+                Statements::UnaryOp { token, expr } => (token.clone(), Rc::clone(expr)),
                 _ => {
                     panic!("this method only for Unary");
                 }
@@ -468,7 +469,7 @@ pub mod pascal_parser {
             }
         }
 
-        pub fn get_compound(&self) -> Rc<RefCell<Vec<Rc<RefCell<ASTTree>>>>> {
+        pub fn get_compound(&self) -> Rc<RefCell<Vec<RefAST>>> {
             if let Statements::Compound { children } = self {
                 Rc::clone(children)
             } else {
@@ -476,64 +477,64 @@ pub mod pascal_parser {
             }
         }
 
-        pub fn get_program_block(&self) -> ASTTree {
-            if let Statements::Program { name, block } = self {
-                block.take()
+        pub fn get_program_block(&self) -> RefAST {
+            if let Statements::Program { block, .. } = self {
+                Rc::clone(block)
             } else {
                 panic!("program block can not be empty.")
             }
         }
 
-        pub fn get_params(&self) -> (ASTTree, ASTTree) {
+        pub fn get_params(&self) -> (RefAST, RefAST) {
             if let Statements::Param {
                 var_name: var_node,
                 var_type: type_node,
             } = self
             {
-                (var_node.take(), type_node.take())
+                (Rc::clone(var_node), Rc::clone(type_node))
             } else {
                 panic!("params can not be empty.")
             }
         }
 
-        pub fn get_block(&self) -> (Vec<Rc<RefCell<ASTTree>>>, ASTTree) {
+        pub fn get_block(&self) -> (Rc<RefCell<Vec<RefAST>>>, RefAST) {
             if let Statements::Block {
                 declaration,
                 compound_statement,
             } = self
             {
-                (declaration.take(), compound_statement.take())
+                (Rc::clone(declaration), Rc::clone(compound_statement))
             } else {
                 panic!("block can not be empty.")
             }
         }
 
-        pub fn get_var_decl(&self) -> (ASTTree, ASTTree) {
+        pub fn get_var_decl(&self) -> (RefAST, RefAST) {
             if let Statements::VarDecl {
                 var_node,
                 type_node,
             } = self
             {
-                (var_node.take(), type_node.take())
+                (Rc::clone(var_node), Rc::clone(type_node))
             } else {
                 panic!("var decl can not be empty.")
             }
         }
 
-        pub fn get_procedure_decl(&self) -> (Token, Vec<Rc<RefCell<ASTTree>>>, ASTTree) {
+        pub fn get_procedure_decl(&self) -> (Token, Vec<RefAST>, RefAST) {
             if let Statements::ProcedureDecl {
                 proc_name,
                 params,
                 block_node,
             } = self
             {
-                (proc_name.clone(), params.clone(), block_node.take())
+                (proc_name.clone(), params.clone(), Rc::clone(block_node))
             } else {
                 panic!("procedure decl can not be empty.")
             }
         }
 
-        pub fn get_procedure_call(&self) -> (Token, Vec<Rc<RefCell<ASTTree>>>) {
+        pub fn get_procedure_call(&self) -> (Token, Vec<RefAST>) {
             if let Statements::ProcedureCall {
                 proc_name,
                 actual_params,
@@ -690,6 +691,7 @@ pub mod pascal_parser {
         }
     }
 
+    #[derive(Default)]
     pub struct Parser {
         lexer: Lexer,
         current_token: Token,
@@ -982,7 +984,6 @@ pub mod pascal_parser {
             if self.current_token.token_type == Begin {
                 self.compound_statement()
             } else if self.current_token.token_type == Id && self.lexer.current_char == '(' {
-                /// TODO lexer to LL(k)
                 self.proccall_statement()
             } else if self.current_token.token_type == Id {
                 self.assignment_statement()
@@ -1185,88 +1186,170 @@ pub mod pascal_parser {
         }
     }
 
-    pub struct Interpreter<T>
-    where
-        T: num_traits::Float + num_traits::Num + num_traits::NumCast,
-    {
-        parser: Parser,
-        global_memory: Rc<RefCell<HashMap<String, T>>>,
+    #[derive(Debug)]
+    pub enum ARType {
+        Program,
+        Procedure,
     }
 
-    impl<T> Interpreter<T>
-    where
-        T: num_traits::Float + num_traits::Num + num_traits::NumCast,
-    {
-        pub fn new(parser: Parser) -> Self {
+    #[derive(Debug)]
+    pub struct ActivationRecord {
+        name: String,
+        record_type: ARType,
+        nesting_level: usize,
+        members: HashMap<String, f64>,
+    }
+
+    impl ActivationRecord {
+        pub fn new() -> Self {
             Self {
-                parser,
-                global_memory: Default::default(),
+                name: "".to_string(),
+                record_type: ARType::Program,
+                nesting_level: 1,
+                members: Default::default(),
             }
         }
 
-        fn visit_program(&mut self, node: ASTTree) {
-            self.visit(node.stat.get_program_block());
+        pub fn set_item<S: AsRef<str>>(&mut self, key: S, value: f64) {
+            self.members.insert(key.as_ref().into(), value);
         }
 
-        fn visit_block(&mut self, node: ASTTree) {
-            let (declarations, compound_statement) = node.stat.get_block();
-            declarations.iter().for_each(|n| {
-                self.visit(n.take());
-            });
-            self.visit(compound_statement);
+        pub fn get_item<S: AsRef<str>>(&self, key: S) -> Option<&f64> {
+            self.members.get(key.as_ref())
         }
+    }
 
-        fn visit_type(&self, node: ASTTree) {
-            {
-                // pass
+    #[derive(Debug)]
+    pub struct CallStack {
+        _records: Vec<Rc<RefCell<ActivationRecord>>>,
+        pub recodes_debug: Vec<Rc<RefCell<ActivationRecord>>>,
+    }
+
+    impl CallStack {
+        pub fn new() -> Self {
+            Self {
+                _records: vec![],
+                recodes_debug: vec![],
             }
         }
 
-        fn visit_var_decl(&self, node: ASTTree) {
-            {
-                //pass
+        pub fn push(&mut self, ar: ActivationRecord) {
+            let ar = Rc::new(RefCell::new(ar));
+            self._records.push(Rc::clone(&ar));
+            self.recodes_debug.push(Rc::clone(&ar));
+        }
+
+        pub fn pop(&mut self) -> Option<Rc<RefCell<ActivationRecord>>> {
+            self._records.pop()
+        }
+
+        pub fn peek(&self) -> Option<Rc<RefCell<ActivationRecord>>> {
+            self._records.last().map(Rc::clone)
+        }
+    }
+
+    pub struct Interpreter {
+        parser_tree: RefAST,
+        pub call_stack: CallStack,
+        symbol_table: LinkedList<Rc<RefCell<ScopedSymbolTable>>>,
+    }
+
+    impl Interpreter {
+        pub fn new() -> Self {
+            Self {
+                parser_tree: Default::default(),
+                call_stack: CallStack::new(),
+                symbol_table: Default::default(),
             }
         }
 
-        fn visit(&mut self, node: ASTTree) -> Option<T> {
-            match node.stat {
-                Statements::Binop(_) => Some(self.visit_binop(node)),
+        pub fn set_symbol_table(
+            mut self,
+            symbol_table: LinkedList<Rc<RefCell<ScopedSymbolTable>>>,
+        ) -> Interpreter {
+            self.symbol_table = symbol_table;
+            self
+        }
+
+        fn visit(&mut self, node: RefAST) -> Option<f64> {
+            let stat = node.as_ref().borrow().stat.clone();
+
+            match stat {
+                Statements::Binop(_) => Some(self.visit_binop(Rc::clone(&node))),
                 Statements::Assign(_) => {
-                    self.visit_assign(node);
+                    self.visit_assign(Rc::clone(&node));
                     None
                 }
-                Statements::Num { .. } => Some(self.visit_num(node)),
-                Statements::UnaryOp { .. } => Some(self.visit_unary(node)),
+                Statements::Num { .. } => Some(self.visit_num(Rc::clone(&node))),
+                Statements::UnaryOp { .. } => Some(self.visit_unary(Rc::clone(&node))),
                 Statements::Compound { .. } => {
-                    self.visit_compound(node);
+                    self.visit_compound(Rc::clone(&node));
                     None
                 }
                 Statements::NoOp => {
-                    self.visit_noop(node);
+                    self.visit_noop(Rc::clone(&node));
                     None
                 }
-                Statements::Var { .. } => Some(self.visit_var(node)),
+                Statements::Var { .. } => Some(self.visit_var(Rc::clone(&node))),
                 Statements::Program { .. } => {
-                    self.visit_program(node);
+                    self.visit_program(Rc::clone(&node));
                     None
                 }
                 Statements::Block { .. } => {
-                    self.visit_block(node);
+                    self.visit_block(Rc::clone(&node));
                     None
                 }
                 Statements::ProcedureDecl { .. } => {
-                    self.visit_procedure_decl(node);
+                    self.visit_procedure_decl(Rc::clone(&node));
+                    None
+                }
+                Statements::ProcedureCall { .. } => {
+                    self.visit_procedure_call(Rc::clone(&node));
                     None
                 }
                 _ => None,
             }
         }
 
-        fn visit_binop(&mut self, node: ASTTree) -> T {
-            let left = self.visit(node.left.unwrap().take()).unwrap();
-            let right = self.visit(node.right.unwrap().take()).unwrap();
+        fn visit_program(&mut self, node: RefAST) {
+            if let Statements::Program { name, block } = node.borrow().stat.clone() {
+                let ar = ActivationRecord {
+                    name,
+                    record_type: ARType::Program,
+                    nesting_level: 1,
+                    members: Default::default(),
+                };
 
-            let token = node.stat.get_token();
+                self.call_stack.push(ar);
+
+                self.visit(Rc::clone(&block));
+
+                self.call_stack.pop();
+            }
+        }
+
+        fn visit_block(&mut self, node: RefAST) {
+            let (declarations, compound_statement) = node.borrow().stat.get_block();
+            declarations.borrow().iter().for_each(|n| {
+                self.visit(Rc::clone(n));
+            });
+
+            self.visit(Rc::clone(&compound_statement));
+        }
+
+        fn visit_type(&self, node: RefAST) {
+            {}
+        }
+
+        fn visit_var_decl(&self, node: RefAST) {
+            {}
+        }
+
+        fn visit_binop(&mut self, node: RefAST) -> f64 {
+            let left = self.visit(node.borrow().left.clone().unwrap()).unwrap();
+            let right = self.visit(node.borrow().right.clone().unwrap()).unwrap();
+
+            let token = node.borrow().stat.get_token();
             if token.token_type == Plus {
                 left + right
             } else if token.token_type == Minus {
@@ -1274,10 +1357,9 @@ pub mod pascal_parser {
             } else if token.token_type == Mul {
                 left * right
             } else if token.token_type == IntegerDiv {
-                let r = left / right;
-                T::from(r.to_i64().unwrap()).unwrap()
+                (left / right) as i64 as f64
             } else if token.token_type == FloatDiv {
-                left.div(right)
+                left / right
             } else if token.token_type == Modulo {
                 left % right
             } else {
@@ -1285,81 +1367,112 @@ pub mod pascal_parser {
             }
         }
 
-        fn visit_num(&mut self, node: ASTTree) -> T {
-            let value = node
+        fn visit_num(&mut self, node: RefAST) -> f64 {
+            node.borrow()
                 .stat
                 .get_num()
                 .parse::<f64>()
-                .unwrap_or_else(|_| panic!("visit_num parse error. found {:#?}", node.stat));
-            T::from(value).unwrap()
+                .unwrap_or_else(|_| {
+                    panic!("visit_num parse error. found {:#?}", node.borrow().stat)
+                })
         }
 
-        fn visit_unary(&mut self, node: ASTTree) -> T {
-            let (token, node) = node.stat.get_unary();
+        fn visit_unary(&mut self, node: RefAST) -> f64 {
+            let (token, node) = node.borrow().stat.get_unary();
 
             match token.token_type {
-                Minus => self.visit(node.take()).unwrap().neg(),
-                Plus => self.visit(node.take()).unwrap(),
+                Minus => -self.visit(Rc::clone(&node)).unwrap(),
+                Plus => self.visit(Rc::clone(&node)).unwrap(),
                 _ => {
                     panic!("visit unary get wrong type")
                 }
             }
         }
 
-        fn visit_compound(&mut self, node: ASTTree) {
-            let children = node.stat.get_compound();
+        fn visit_compound(&mut self, node: RefAST) {
+            let children = node.borrow().stat.get_compound();
             children.borrow().iter().for_each(|child| {
-                self.visit(child.take());
+                self.visit(Rc::clone(child));
             });
         }
 
-        fn visit_assign(&mut self, node: ASTTree) {
-            if let Some(var_name) = node.left {
+        fn visit_assign(&mut self, node: RefAST) {
+            if let Some(var_name) = node.borrow().left.clone() {
                 let var_name = var_name.take().stat.get_token().token_value;
-                let var = self.visit(node.right.unwrap().take()).unwrap();
-                self.set_global_scope(var_name, T::from(var).unwrap());
-            }
-        }
 
-        fn set_global_scope<S: AsRef<str>>(&mut self, var_name: S, var: T) {
-            let var_name = var_name.as_ref().into();
-            self.global_memory.borrow_mut().insert(var_name, var);
-        }
+                let var = self.visit(node.borrow().right.clone().unwrap()).unwrap();
 
-        fn visit_var(&mut self, node: ASTTree) -> T {
-            let var_name = node.stat.get_token().token_value;
-            let hash = self.global_memory.borrow();
-            let var = hash.get(&var_name);
-            match var {
-                None => {
-                    panic!("visit var can not find var")
+                if let Some(ar) = self.call_stack.peek() {
+                    ar.borrow_mut().set_item(var_name, var);
                 }
-                Some(v) => *v,
             }
         }
 
-        fn visit_procedure_decl(&mut self, node: ASTTree) {
-            {
-                // pass
-            }
-        }
-
-        fn visit_noop(&mut self, node: ASTTree) {
-            if let Statements::NoOp = node.stat {
-                // pass
+        fn visit_var(&mut self, node: RefAST) -> f64 {
+            let var_name = node.borrow().stat.get_token().token_value;
+            if let Some(ar) = self.call_stack.peek() {
+                if let Some(var_value) = ar.borrow().get_item(var_name) {
+                    *var_value
+                } else {
+                    panic!("");
+                }
             } else {
-                panic!("visit noop get wrong token.")
+                panic!("")
             }
         }
 
-        fn _interpret(&mut self) {
-            let tree = self.parser.parser();
-            self.visit(tree);
+        fn visit_procedure_decl(&mut self, node: RefAST) {
+            {}
         }
 
-        pub fn interpret(&mut self) -> HashMap<String, T> {
+        fn visit_procedure_call(&mut self, node: RefAST) {
+            let (proc_name, proccal) = node.borrow().stat.get_procedure_call();
+            let mut ar = ActivationRecord {
+                name: proc_name.get_value(),
+                record_type: ARType::Procedure,
+                nesting_level: Default::default(),
+                members: Default::default(),
+            };
+            let proc_name = proc_name.token_value;
+            let mut block_ast = ASTTree::default();
+
+            self.symbol_table.clone().iter().for_each(|table| {
+                //eprintln!("proc_name: {:#?}", proc_name);
+                if table.borrow().scope_name == proc_name {
+                    if let Some(proc) = table.borrow()._symbols.clone().get(&proc_name) {
+                        let proc = proc.borrow().get_procedure();
+                        block_ast = proc.block_ast.take();
+                        proc.params.iter().zip(&proccal).for_each(|x| {
+                            let num = self.visit(Rc::clone(x.1)).unwrap();
+                            ar.nesting_level = table.borrow().scope_level;
+                            ar.set_item(x.0.symbol_name.clone(), num);
+                        });
+                    }
+                }
+            });
+
+            self.call_stack.push(ar);
+
+            self.visit(Rc::new(RefCell::new(block_ast)));
+
+            self.call_stack.pop();
+        }
+
+        fn visit_noop(&mut self, node: RefAST) {
+            {}
+        }
+
+        pub fn set_parser(mut self, parser: RefAST) -> Self {
+            self.parser_tree = parser;
+            self
+        }
+
+        pub fn _interpret(&mut self) {
+            self.visit(Rc::clone(&self.parser_tree));
+        }
+
+        pub fn interpret(&mut self) {
             self._interpret();
-            self.global_memory.take()
         }
     }
     #[derive(Debug, Eq, PartialEq, Clone)]
@@ -1371,8 +1484,8 @@ pub mod pascal_parser {
     impl From<TokenType> for SymbolType {
         fn from(value: TokenType) -> Self {
             match value {
-                TokenType::Integer => SymbolType::Integer,
-                TokenType::Real => SymbolType::Real,
+                Integer => SymbolType::Integer,
+                Real => SymbolType::Real,
                 _ => {
                     panic!("symbol type error: {:#?}", value)
                 }
@@ -1435,6 +1548,7 @@ pub mod pascal_parser {
     pub struct ProcedureSymbol {
         procedure_name: String,
         params: Vec<VarSymbol>,
+        block_ast: RefAST,
     }
 
     impl Display for ProcedureSymbol {
@@ -1498,6 +1612,7 @@ pub mod pascal_parser {
     pub struct ScopedSymbolTable {
         _symbols: HashMap<String, Rc<RefCell<Symbol>>>,
         scope_name: String,
+        scope_level: usize,
     }
 
     impl Display for ScopedSymbolTable {
@@ -1506,7 +1621,11 @@ pub mod pascal_parser {
             self._symbols.iter().for_each(|(name, symbol)| {
                 symbols.push(format!("{}", symbol.borrow().to_string()));
             });
-            write!(f, "SCOPE_NAME:<{}>\n{:#?}", self.scope_name, symbols)
+            write!(
+                f,
+                "SCOPE_NAME:<{}>\nSCOPE_LEVE:{}\n{:#?}",
+                self.scope_name, self.scope_level, symbols
+            )
         }
     }
 
@@ -1521,6 +1640,7 @@ pub mod pascal_parser {
             Self {
                 _symbols: Default::default(),
                 scope_name: name.as_ref().into(),
+                scope_level: 1,
             }
         }
         pub fn _init_builtins(&mut self) {
@@ -1565,90 +1685,95 @@ pub mod pascal_parser {
             self.current_scope.borrow().lookup(name).map(Rc::clone)
         }
 
-        fn visit(&mut self, node: ASTTree) {
-            match node.stat {
+        fn visit(&mut self, node: RefAST) {
+            let stat = node.as_ref().borrow().stat.clone();
+
+            match stat {
                 Statements::Binop(_) => {
-                    self.visit_binop(node);
+                    self.visit_binop(Rc::clone(&node));
                 }
                 Statements::Assign(_) => {
-                    self.visit_assign(node);
+                    self.visit_assign(Rc::clone(&node));
                 }
                 Statements::Num { .. } => {
-                    self.visit_num(node);
+                    self.visit_num(Rc::clone(&node));
                 }
                 Statements::UnaryOp { .. } => {
-                    self.visit_unary(node);
+                    self.visit_unary(Rc::clone(&node));
                 }
                 Statements::Compound { .. } => {
-                    self.visit_compound(node);
+                    self.visit_compound(Rc::clone(&node));
                 }
                 Statements::NoOp => {
-                    self.visit_noop(node);
+                    self.visit_noop(Rc::clone(&node));
                 }
                 Statements::Var { .. } => {
-                    self.visit_var(node);
+                    self.visit_var(Rc::clone(&node));
                 }
                 Statements::Program { .. } => {
-                    self.visit_program(node);
+                    self.visit_program(Rc::clone(&node));
                 }
                 Statements::Block { .. } => {
-                    self.visit_block(node);
+                    self.visit_block(Rc::clone(&node));
                 }
                 Statements::VarDecl { .. } => {
-                    self.visit_var_decl(node);
+                    self.visit_var_decl(Rc::clone(&node));
                 }
                 Statements::ProcedureDecl { .. } => {
-                    self.visit_procedure_decl(node);
+                    self.visit_procedure_decl(Rc::clone(&node));
                 }
                 Statements::Param { .. } => {
-                    self.visit_params(node);
+                    self.visit_params(Rc::clone(&node));
                 }
                 Statements::ProcedureCall { .. } => {
-                    self.visit_procedure_call(node);
+                    self.visit_procedure_call(Rc::clone(&node));
                 }
                 _ => {}
             }
         }
 
-        fn visit_block(&mut self, node: ASTTree) {
-            let (d, c) = node.stat.get_block();
-            d.iter().for_each(|n| {
-                self.visit(n.take());
+        fn visit_block(&mut self, node: RefAST) {
+            let (d, c) = node.borrow().stat.get_block();
+            d.borrow().iter().for_each(|n| {
+                self.visit(Rc::clone(n));
             });
 
             self.visit(c);
         }
 
-        fn visit_program(&mut self, node: ASTTree) {
-            let mut global_scope = Rc::new(RefCell::new(ScopedSymbolTable::new("global")));
+        fn visit_program(&mut self, node: RefAST) {
+            let global_scope = Rc::new(RefCell::new(ScopedSymbolTable::new("global")));
 
             global_scope.borrow_mut()._init_builtins();
 
             self.scopes.push_back(Rc::clone(&global_scope));
             self.current_scope = Rc::clone(&global_scope);
 
-            self.visit(node.stat.get_program_block());
+            self.visit(node.borrow().stat.get_program_block());
         }
 
-        fn visit_params(&mut self, node: ASTTree) {
-            let (v, t) = node.stat.get_params();
+        fn visit_params(&mut self, node: RefAST) {
+            let (v, t) = node.borrow().stat.get_params();
             self.visit(v);
             self.visit(t);
         }
 
-        fn visit_binop(&mut self, node: ASTTree) {
-            self.visit(node.left.unwrap().take());
-            self.visit(node.right.unwrap().take());
-        }
+        fn visit_binop(&mut self, node: RefAST) {
+            if let Some(left) = node.borrow().left.clone() {
+                self.visit(left);
+            }
 
-        fn visit_num(&mut self, node: ASTTree) {
-            {
-                // pass
+            if let Some(right) = node.borrow().right.clone() {
+                self.visit(right);
             }
         }
 
-        fn visit_procedure_call(&mut self, node: ASTTree) {
-            let (proc_name, actual_params) = node.stat.get_procedure_call();
+        fn visit_num(&mut self, node: RefAST) {
+            {}
+        }
+
+        fn visit_procedure_call(&mut self, node: RefAST) {
+            let (proc_name, actual_params) = node.borrow().stat.get_procedure_call();
 
             if let Some(symbol) = self.lookup(proc_name.get_value()) {
                 let params_nums = symbol.borrow().get_procedure().params.len();
@@ -1663,25 +1788,27 @@ pub mod pascal_parser {
             }
 
             for param in actual_params {
-                self.visit(param.take());
+                self.visit(Rc::clone(&param));
             }
         }
 
-        fn visit_unary(&mut self, node: ASTTree) {
-            self.visit(node.stat.get_unary().1.take());
+        fn visit_unary(&mut self, node: RefAST) {
+            self.visit(node.borrow().stat.get_unary().1);
         }
 
-        fn visit_compound(&mut self, node: ASTTree) {
-            let children = node.stat.get_compound();
+        fn visit_compound(&mut self, node: RefAST) {
+            let children = node.borrow().stat.get_compound();
             children.borrow().iter().for_each(|child| {
-                self.visit(child.take());
+                self.visit(Rc::clone(child));
             });
         }
 
-        fn visit_procedure_decl(&mut self, node: ASTTree) {
-            let (proc_name, params, block_node) = node.stat.get_procedure_decl();
+        fn visit_procedure_decl(&mut self, node: RefAST) {
+            let (proc_name, params, block_node) = node.borrow().stat.get_procedure_decl();
+
             let proc_name = proc_name.token_value;
-            let mut procedure_scope = Rc::new(RefCell::new(ScopedSymbolTable::new(&proc_name)));
+            let procedure_scope = Rc::new(RefCell::new(ScopedSymbolTable::new(&proc_name)));
+            procedure_scope.borrow_mut().scope_level = self.current_scope.borrow().scope_level + 1;
 
             self.current_scope = Rc::clone(&procedure_scope);
             let mut proc_params = vec![];
@@ -1706,31 +1833,36 @@ pub mod pascal_parser {
                 .insert(Symbol::Procedure(ProcedureSymbol {
                     procedure_name: proc_name,
                     params: proc_params,
+                    block_ast: Rc::clone(&block_node),
                 }));
 
             self.scopes.push_back(Rc::clone(&procedure_scope));
 
-            self.visit(block_node);
+            self.visit(Rc::clone(&block_node));
         }
 
-        fn visit_noop(&mut self, node: ASTTree) {
+        fn visit_noop(&mut self, node: RefAST) {
             {
                 // pass
             }
         }
 
-        fn visit_var_decl(&mut self, node: ASTTree) {
-            let (var_name, var_type) = node.stat.get_var_decl();
+        fn visit_var_decl(&mut self, node: RefAST) {
+            let (var_name, var_type) = node.borrow().stat.get_var_decl();
 
-            let type_name = var_name.stat.get_token().token_value;
-            let type_symbol = SymbolType::from(var_type.stat.get_token().token_type);
+            let type_name = var_name.borrow().stat.get_token().token_value;
+            let type_symbol = SymbolType::from(var_type.borrow().stat.get_token().token_type);
 
             let var_symbol = VarSymbol::new(&type_name, type_symbol);
 
             if self.lookup(&type_name).is_some() {
                 panic!(
                     "{}",
-                    var_name.stat.get_token().error(ErrorCode::DuplicateId)
+                    var_name
+                        .borrow()
+                        .stat
+                        .get_token()
+                        .error(ErrorCode::DuplicateId)
                 );
             }
 
@@ -1739,20 +1871,28 @@ pub mod pascal_parser {
                 .insert(Symbol::Var(var_symbol));
         }
 
-        fn visit_assign(&mut self, node: ASTTree) {
-            self.visit(node.left.unwrap().take());
-            self.visit(node.right.unwrap().take());
-        }
+        fn visit_assign(&mut self, node: RefAST) {
+            if let Some(left) = node.borrow().left.clone() {
+                self.visit(left);
+            }
 
-        fn visit_var(&mut self, node: ASTTree) {
-            let var_name = node.stat.get_token().get_value();
-            if self.lookup_all(var_name).is_none() {
-                panic!("{}", node.stat.get_token().error(ErrorCode::IdNotFound));
+            if let Some(right) = node.borrow().right.clone() {
+                self.visit(right);
             }
         }
 
-        pub fn _visit(&mut self, node: ASTTree) -> LinkedList<Rc<RefCell<ScopedSymbolTable>>> {
-            self.visit(node);
+        fn visit_var(&mut self, node: RefAST) {
+            let var_name = node.borrow().stat.get_token().get_value();
+            if self.lookup_all(var_name).is_none() {
+                panic!(
+                    "{}",
+                    node.borrow().stat.get_token().error(ErrorCode::IdNotFound)
+                );
+            }
+        }
+
+        pub fn _visit(&mut self, node: RefAST) -> LinkedList<Rc<RefCell<ScopedSymbolTable>>> {
+            self.visit(Rc::clone(&node));
             self.scopes.clone()
         }
     }
