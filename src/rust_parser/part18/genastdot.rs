@@ -12,7 +12,7 @@ pub mod gen_ast_dot {
     use std::mem;
     use std::rc::Rc;
 
-    use crate::rust_parser::part16::spi16::pascal_parser::{ASTTree, Statements};
+    use crate::rust_parser::part18::spi18::pascal_parser::{ASTTree, Statements};
 
     pub struct ASTVisualizer {
         node_count: usize,
@@ -401,11 +401,11 @@ mod tests {
     use std::io::{Read, Write};
     use std::process::Command;
 
-    use crate::rust_parser::part16::spi16::pascal_parser::{Lexer, Parser};
+    use crate::rust_parser::part18::spi18::pascal_parser::{Lexer, Parser};
 
     use super::gen_ast_dot::*;
 
-    const PATH: &str = "./src/rust_parser/part16/";
+    const PATH: &str = "./src/rust_parser/part18/";
 
     #[test]
     fn test_gen_ast_dot() {

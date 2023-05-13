@@ -1,14 +1,17 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-    use crate::rust_parser::part16::spi16::pascal_parser::{
+    use crate::rust_parser::part18::spi18::pascal_parser::{
         Interpreter, Lexer, Parser, SemanticAnalyzer, Token, TokenType,
     };
+    use num_traits::Bounded;
+    use std::cell::RefCell;
     use std::fs::File;
     use std::io::Read;
+    use std::rc::Rc;
 
     #[test]
-    fn test_16_lexer() {
+    fn test_18_lexer() {
         let str = "PROGRAM Part12;
 VAR
     a, c : INTEGER;
@@ -99,7 +102,7 @@ END. {Part12}"
     }
 
     #[test]
-    fn test_ast_tree() {
+    fn test_stack() {
         let str = "PROGRAM Test;
 VAR
     a : INTEGER;
@@ -107,9 +110,16 @@ BEGIN
     a := 125+12;
 END."
             .to_string();
-        let k = Interpreter::<f64>::new(Parser::new(Lexer::new(str))).interpret();
-        let a = *k.get("a").unwrap();
-        assert_eq!(137.0, a);
+        let mut interpreter = Interpreter::new()
+            .set_parser(Rc::new(RefCell::new(Parser::new(Lexer::new(str)).parser())));
+        interpreter.interpret();
+        let mut a = i64::max_value();
+        if let Some(ar) = interpreter.call_stack.recodes_debug.get(0) {
+            if let Some(var) = ar.borrow().get_item("a") {
+                a = *var as i64;
+            }
+        }
+        assert_eq!(137, a);
     }
 
     #[test]
@@ -130,7 +140,7 @@ END."
             ("5 - - - + - 3", 8),
             ("5 - - - + - (3 + 4) - +2", 10),
         ];
-        let interpret = |s: (&str, i64)| {
+        let interpret = |input: &str, var: i32| {
             let input = format!(
                 "
         PROGRAM Test;
@@ -140,16 +150,23 @@ END."
             a := {}
         END.
         ",
-                s.0
+                var
             );
 
-            let results = Interpreter::<f64>::new(Parser::new(Lexer::new(input))).interpret();
-            if let Some(result) = results.get(s.0) {
-                assert_eq!(s.1, *result as i64);
-            }
+            Interpreter::new().set_parser(Rc::new(RefCell::new(
+                Parser::new(Lexer::new(input)).parser(),
+            )))
         };
-        case.iter().for_each(|x| {
-            interpret(*x);
+        case.iter().for_each(|(input, var)| {
+            let mut i = interpret(input, *var);
+            i.interpret();
+            let mut a = i32::max_value();
+            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+                if let Some(v) = ar.borrow().get_item("a") {
+                    a = *v as i32;
+                }
+            }
+            assert_eq!(a, *var);
         });
     }
 
@@ -174,13 +191,20 @@ END."
                 s.0
             );
 
-            let results = Interpreter::<f64>::new(Parser::new(Lexer::new(input))).interpret();
-            if let Some(result) = results.get(s.0) {
-                assert_eq!(s.1, *result);
-            }
+            Interpreter::new().set_parser(Rc::new(RefCell::new(
+                Parser::new(Lexer::new(input)).parser(),
+            )))
         };
         case.iter().for_each(|x| {
-            interpret(*x);
+            let mut i = interpret((x.0, x.1));
+            i.interpret();
+            let mut a = 0.0;
+            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+                if let Some(v) = ar.borrow().get_item("a") {
+                    a = *v;
+                }
+            }
+            assert_eq!(a, x.1);
         });
     }
 
@@ -211,6 +235,26 @@ BEGIN {Part12}
     b := 10 * a + 10 * number DIV 4;
     y := 20 / 7 + 3.24
 END.  {Part12}";
+
+    #[test]
+    fn test_statements() {
+        let mut i = Interpreter::new().set_parser(Rc::new(RefCell::new(
+            Parser::new(Lexer::new(INPUT)).parser(),
+        )));
+        i.interpret();
+
+        if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+            let a = *ar.borrow().get_item("a").unwrap();
+            let b = *ar.borrow().get_item("b").unwrap();
+            let y = *ar.borrow().get_item("y").unwrap();
+            let number = *ar.borrow().get_item("number").unwrap();
+
+            assert_eq!(a as i64, 2);
+            assert_eq!(b as i64, 25);
+            assert_eq!(number as i64, 2);
+            assert_eq!(y, ((20.0 / 7.0) + 3.24));
+        }
+    }
 
     const INPUT2: &str = "program Main;
     var b, x, y : real;
@@ -245,20 +289,11 @@ END.  {Part12}";
 begin { Main }
 end.  { Main }
 ";
-
-    #[test]
-    fn test_statements() {
-        let results = Interpreter::<f64>::new(Parser::new(Lexer::new(INPUT))).interpret();
-        assert_eq!(results.len(), 4);
-        assert_eq!(2, *results.get("number").unwrap() as i64);
-        assert_eq!(2, *results.get("a").unwrap() as i64);
-        assert_eq!(25, *results.get("b").unwrap() as i64);
-        assert_eq!(20_f64 / 7_f64 + 3.24, *results.get("y").unwrap());
-    }
-
     #[test]
     fn test_input2() {
-        let k = SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(INPUT2)).parser());
+        let k = SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(
+            Parser::new(Lexer::new(INPUT2)).parser(),
+        )));
         k.iter().for_each(|s| {
             eprintln!("{}\n", s.borrow().to_string());
         });
@@ -267,11 +302,13 @@ end.  { Main }
     #[test]
     #[should_panic]
     fn test_symbol_not_found() {
-        let path = "./src/rust_parser/part16/dupiderror.pas";
+        let path = "./src/rust_parser/part18/dupiderror.pas";
         if let Ok(mut file) = File::open(path) {
             let mut buff = String::new();
             file.read_to_string(&mut buff).expect("read file error");
-            SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(buff)).parser());
+            SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(
+                Parser::new(Lexer::new(buff)).parser(),
+            )));
         }
     }
 
@@ -283,6 +320,7 @@ end.  { Main }
             a := 1.5 {TODO missing semi should be panic}
         END.
         ";
+
     #[test]
     #[should_panic]
     fn test_unexpected_token() {
@@ -291,11 +329,41 @@ end.  { Main }
 
     #[test]
     fn test_proccall() {
-        let path = "./src/rust_parser/part16/part18.pas";
+        let path = "./src/rust_parser/part18/part18.pas";
         if let Ok(mut file) = File::open(path) {
             let mut buff = String::new();
             file.read_to_string(&mut buff).expect("read file error");
-            SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(buff)).parser());
+            SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(
+                Parser::new(Lexer::new(buff)).parser(),
+            )));
+        }
+    }
+
+    #[test]
+    fn test_proccall2() {
+        let path = "./src/rust_parser/part18/part18.pas";
+        if let Ok(mut file) = File::open(path) {
+            let mut buff = String::new();
+            file.read_to_string(&mut buff).expect("read file error");
+            let ast = Rc::new(RefCell::new(Parser::new(Lexer::new(buff.clone())).parser()));
+
+            let e = SemanticAnalyzer::new()._visit(ast.clone());
+
+            let mut i = Interpreter::new().set_symbol_table(e).set_parser(ast);
+
+            i._interpret();
+            let test_cases = vec![("a", 8), ("b", 7), ("x", 30)];
+            test_cases.iter().for_each(|x| {
+                assert_eq!(
+                    x.1,
+                    *i.call_stack.recodes_debug[1]
+                        .borrow()
+                        .get_item(x.0)
+                        .unwrap() as i32
+                )
+            });
+
+            //eprintln!("{:#?}", i.call_stack.recodes_debug);
         }
     }
 
@@ -314,6 +382,8 @@ end.  { Main }
     #[test]
     #[should_panic]
     fn test_proccall_error() {
-        SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(WRONG_PARAMS_NUM)).parser());
+        SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(
+            Parser::new(Lexer::new(WRONG_PARAMS_NUM)).parser(),
+        )));
     }
 }
