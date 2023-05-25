@@ -1,0 +1,153 @@
+digraph astgraph {
+    node [shape=circle, fontsize=12, fontname="Courier", height=.1];
+    ranksep=.3;
+    edge [arrowsize=.5]
+
+    node1 [label="Program"]
+    node2 [label="Block"]
+    node3 [label="VarDecl"]
+    node4 [label="b"]
+    node3 -> node4
+    node5 [label="real"]
+    node3 -> node5
+    node6 [label="VarDecl"]
+    node7 [label="x"]
+    node6 -> node7
+    node8 [label="real"]
+    node6 -> node8
+    node9 [label="VarDecl"]
+    node10 [label="y"]
+    node9 -> node10
+    node11 [label="real"]
+    node9 -> node11
+    node12 [label="VarDecl"]
+    node13 [label="z"]
+    node12 -> node13
+    node14 [label="integer"]
+    node12 -> node14
+    node15 [label="ProcDecl:AlphaA"]
+    node16 [label="Param"]
+    node17 [label="a"]
+    node16 -> node17
+    node18 [label="integer"]
+    node16 -> node18
+    node15 -> node16
+    node19 [label="Block"]
+    node20 [label="VarDecl"]
+    node21 [label="b"]
+    node20 -> node21
+    node22 [label="integer"]
+    node20 -> node22
+    node23 [label="ProcDecl:Beta"]
+    node24 [label="Param"]
+    node25 [label="c"]
+    node24 -> node25
+    node26 [label="integer"]
+    node24 -> node26
+    node23 -> node24
+    node27 [label="Block"]
+    node28 [label="VarDecl"]
+    node29 [label="y"]
+    node28 -> node29
+    node30 [label="integer"]
+    node28 -> node30
+    node31 [label="ProcDecl:Gamma"]
+    node32 [label="Param"]
+    node33 [label="c"]
+    node32 -> node33
+    node34 [label="integer"]
+    node32 -> node34
+    node31 -> node32
+    node35 [label="Block"]
+    node36 [label="VarDecl"]
+    node37 [label="x"]
+    node36 -> node37
+    node38 [label="integer"]
+    node36 -> node38
+    node39 [label="Compound"]
+    node40 [label=":="]
+    node41 [label="x"]
+    node40 -> node41
+    node42 [label=Plus]
+    node43 [label=Plus]
+    node44 [label=Plus]
+    node45 [label=Plus]
+    node46 [label=Plus]
+    node47 [label="a"]
+    node46 -> node47
+    node48 [label="b"]
+    node46 -> node48
+    node45 -> node46
+    node49 [label="c"]
+    node45 -> node49
+    node44 -> node45
+    node50 [label="x"]
+    node44 -> node50
+    node43 -> node44
+    node51 [label="y"]
+    node43 -> node51
+    node42 -> node43
+    node52 [label="z"]
+    node42 -> node52
+    node40 -> node42
+    node39 -> node40
+    node53 [label="NoOp"]
+    node39 -> node53
+    node35 -> node36
+    node35 -> node39
+    node31 -> node35
+    node54 [label="Compound"]
+    node55 [label="NoOp"]
+    node54 -> node55
+    node27 -> node28
+    node27 -> node31
+    node27 -> node54
+    node23 -> node27
+    node56 [label="Compound"]
+    node57 [label="NoOp"]
+    node56 -> node57
+    node19 -> node20
+    node19 -> node23
+    node19 -> node56
+    node15 -> node19
+    node58 [label="ProcDecl:AlphaB"]
+    node59 [label="Param"]
+    node60 [label="a"]
+    node59 -> node60
+    node61 [label="integer"]
+    node59 -> node61
+    node58 -> node59
+    node62 [label="Block"]
+    node63 [label="VarDecl"]
+    node64 [label="c"]
+    node63 -> node64
+    node65 [label="real"]
+    node63 -> node65
+    node66 [label="Compound"]
+    node67 [label=":="]
+    node68 [label="c"]
+    node67 -> node68
+    node69 [label=Plus]
+    node70 [label="a"]
+    node69 -> node70
+    node71 [label="b"]
+    node69 -> node71
+    node67 -> node69
+    node66 -> node67
+    node72 [label="NoOp"]
+    node66 -> node72
+    node62 -> node63
+    node62 -> node66
+    node58 -> node62
+    node73 [label="Compound"]
+    node74 [label="NoOp"]
+    node73 -> node74
+    node2 -> node3
+    node2 -> node6
+    node2 -> node9
+    node2 -> node12
+    node2 -> node15
+    node2 -> node58
+    node2 -> node73
+    node1 -> node2
+}
