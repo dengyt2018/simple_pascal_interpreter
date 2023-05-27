@@ -2,16 +2,14 @@
 pub mod pascal_parser {
     use core::fmt;
     use std::cell::RefCell;
-    use std::collections::{HashMap, LinkedList};
+    use std::collections::linked_list::LinkedList;
+    use std::collections::HashMap;
+
     use std::fmt::Display;
     use std::rc::Rc;
     use std::str::FromStr;
 
-    use TokenType::{
-        Assign, Begin, Colon, Comma, Dot, End, Eof, FloatDiv, Id, Integer, IntegerConst,
-        IntegerDiv, Lbrack, Minus, Modulo, Mul, Plus, Procedure, Program, Rbrack, Real, RealConst,
-        Semi, Var,
-    };
+    use TokenType::*;
 
     type RefAST = Rc<RefCell<ASTTree>>;
 
@@ -1475,6 +1473,7 @@ pub mod pascal_parser {
             self._interpret();
         }
     }
+    
     #[derive(Debug, Eq, PartialEq, Clone)]
     pub enum SymbolType {
         Integer,
