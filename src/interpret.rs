@@ -1,4 +1,6 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+use crate::error::PascalResult;
+use crate::obj;
 use crate::object::Object;
 use crate::parser::{ASTTree, RefAST, Statements};
 use crate::semantic::{ScopedSymbolTable, SymbolType};
@@ -6,7 +8,7 @@ use crate::token::TokenType;
 use crate::{rc, rclone};
 use std::cell::RefCell;
 use std::collections::{HashMap, LinkedList};
-use std::ops::Deref;
+use std::ops::{Deref, Neg};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -175,19 +177,26 @@ impl Interpreter {
         let token = node.borrow().stat.get_token();
 
         if token.token_type == TokenType::Plus {
-            left + right
+            let r = left + right;
+            obj!(r, token)
         } else if token.token_type == TokenType::Minus {
-            left - right
+            let r = left - right;
+            obj!(r, token)
         } else if token.token_type == TokenType::Mul {
-            left * right
+            let r = left * right;
+            obj!(r, token)
         } else if token.token_type == TokenType::IntegerDiv {
-            left / right
+            let r = left / right;
+            obj!(r, token)
         } else if token.token_type == TokenType::FloatDiv {
-            Object::RealConst(left.get_real_const()) / Object::RealConst(right.get_real_const())
+            let r = Object::RealConst(left.get_real_const())
+                / Object::RealConst(right.get_real_const());
+            obj!(r, token)
         } else if token.token_type == TokenType::Modulo {
-            left % right
+            let r = left % right;
+            obj!(r, token)
         } else {
-            panic!("visit binop get wrong type.")
+            unreachable!()
         }
     }
 
@@ -195,19 +204,28 @@ impl Interpreter {
         let (token, node) = node.borrow().stat.get_unary();
 
         match token.token_type {
-            TokenType::Minus => -self.visit(rclone!(&node)).unwrap(),
+            TokenType::Minus => {
+                let r = self.visit(rclone!(&node)).unwrap().neg();
+                obj!(r, token)
+            }
             TokenType::Plus => self.visit(rclone!(&node)).unwrap(),
             _ => {
-                panic!("visit unary get wrong type")
+                PascalResult::runtime_error(
+                    &token,
+                    format!(
+                        "The Unary type is wrong, can not be a '{}'.",
+                        token.token_value
+                    ),
+                );
+                panic!();
             }
         }
     }
 
     fn visit_object(&mut self, node: RefAST) -> Object {
         let object = node.borrow().stat.get_object();
-
-        let o = object.borrow().deref().clone();
-        o
+        let obj = object.borrow().deref().clone();
+        obj
     }
 
     fn visit_compound(&mut self, node: RefAST) {
@@ -260,10 +278,10 @@ impl Interpreter {
             if let Some(var_value) = ar.borrow().get_item(var_name) {
                 var_value.clone()
             } else {
-                panic!("");
+                unreachable!();
             }
         } else {
-            panic!("")
+            unreachable!();
         }
     }
 
@@ -334,4 +352,17 @@ impl Interpreter {
     pub fn interpret(&mut self) {
         self._interpret();
     }
+}
+
+#[macro_export]
+macro_rules! obj {
+    ($ob: ident, $token: ident) => {
+        match $ob {
+            Ok(o) => o,
+            Err(msg) => {
+                PascalResult::runtime_error(&$token, msg);
+                panic!()
+            }
+        }
+    };
 }

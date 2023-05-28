@@ -1,9 +1,8 @@
 #![allow(non_camel_case_types, dead_code, unused)]
-use crate::lexer::Lexer;
+
 use crate::object::Object;
 use crate::rc;
 use crate::rclone;
-use crate::token::TokenType::Lbrack;
 use crate::token::*;
 use crate::{match_token, set_token};
 use std::cell::RefCell;
@@ -28,7 +27,7 @@ pub enum Statements {
         expr: RefAST,
     },
     Program {
-        name: std::string::String,
+        name: String,
         block: RefAST,
     },
     Param {
@@ -640,7 +639,7 @@ impl<'a> Parser<'a> {
         let mut right = ASTTree::default();
 
         if peek.token_type == TokenType::String {
-            if let Some(object) = peek.literal.clone() {
+            if let Some(object) = peek.literal {
                 self.eat(TokenType::String);
                 right = ASTTree::object(object);
             }
@@ -841,20 +840,4 @@ macro_rules! match_token {
     ($self:ident, $token_type: expr) => {{
         $self.tokens[$self.current_pos].token_type == $token_type
     }};
-}
-
-#[test]
-fn test_parse() {
-    let str = r#"PROGRAM str;
-VAR
-    s : STRING;
-BEGIN
-    s := "string abc";
-END. "#
-        .to_string();
-
-    let tokens = Lexer::new(str).get_tokens();
-    let p = Parser::new(&tokens).parser();
-
-    eprintln!("{:#?}", p);
 }

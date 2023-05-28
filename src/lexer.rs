@@ -275,7 +275,6 @@ impl Lexer {
 
 #[test]
 fn test_lexer() {
-    use crate::token::TokenType::*;
     let str = r#"PROGRAM Part12;
 VAR
     a, c : INTEGER;

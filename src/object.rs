@@ -27,73 +27,73 @@ impl Display for Object {
 }
 
 impl Add for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn add(self, rhs: Self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(r + rhs.get_real_const()),
-            Object::IntegerConst(i) => Object::IntegerConst(i + rhs.get_integer_const()),
-            Object::Str(s) => Object::Str(format!("{}{}", s, rhs.get_string())),
+            Object::RealConst(r) => Ok(Object::RealConst(r + rhs.get_real_const())),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(i + rhs.get_integer_const())),
+            Object::Str(s) => Ok(Object::Str(format!("{}{}", s, rhs.get_string()))),
         }
     }
 }
 
 impl Sub for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(r - rhs.get_real_const()),
-            Object::IntegerConst(i) => Object::IntegerConst(i - rhs.get_integer_const()),
-            Object::Str(s) => panic!(),
+            Object::RealConst(r) => Ok(Object::RealConst(r - rhs.get_real_const())),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(i - rhs.get_integer_const())),
+            Object::Str(s) => Err("String dot not support method sub".to_string()),
         }
     }
 }
 
 impl Mul for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(r * rhs.get_real_const()),
-            Object::IntegerConst(i) => Object::IntegerConst(i * rhs.get_integer_const()),
-            Object::Str(s) => panic!(),
+            Object::RealConst(r) => Ok(Object::RealConst(r * rhs.get_real_const())),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(i * rhs.get_integer_const())),
+            Object::Str(s) => Err("String dot not support method mul".to_string()),
         }
     }
 }
 
 impl Div for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn div(self, rhs: Self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(r / rhs.get_real_const()),
-            Object::IntegerConst(i) => Object::IntegerConst(i / rhs.get_integer_const()),
-            Object::Str(s) => panic!(),
+            Object::RealConst(r) => Ok(Object::RealConst(r / rhs.get_real_const())),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(i / rhs.get_integer_const())),
+            Object::Str(_) => Err("String dot not support method div".to_string()),
         }
     }
 }
 
 impl Neg for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn neg(self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(-r),
-            Object::IntegerConst(i) => Object::IntegerConst(-i),
-            Object::Str(s) => panic!(),
+            Object::RealConst(r) => Ok(Object::RealConst(-r)),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(-i)),
+            Object::Str(_) => Err("String dot not support method neg".to_string()),
         }
     }
 }
 
 impl Rem for Object {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn rem(self, rhs: Self) -> Self::Output {
         match self {
-            Object::RealConst(r) => Object::RealConst(r % rhs.get_real_const()),
-            Object::IntegerConst(i) => Object::IntegerConst(i % rhs.get_integer_const()),
-            Object::Str(s) => panic!(),
+            Object::RealConst(r) => Ok(Object::RealConst(r % rhs.get_real_const())),
+            Object::IntegerConst(i) => Ok(Object::IntegerConst(i % rhs.get_integer_const())),
+            Object::Str(s) => Err("String dot not support method rem".to_string()),
         }
     }
 }

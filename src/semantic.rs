@@ -161,7 +161,7 @@ pub struct ScopedSymbolTable {
 impl Display for ScopedSymbolTable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut symbols = vec![];
-        self._symbols.iter().for_each(|(name, symbol)| {
+        self._symbols.iter().for_each(|(_, symbol)| {
             symbols.push(format!("{}", symbol.borrow().to_string()));
         });
         write!(

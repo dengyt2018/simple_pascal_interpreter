@@ -1,17 +1,15 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 pub mod tests {
-    use crate::interpret::{ActivationRecord, Interpreter};
+    use crate::error::init_log::init_log;
+    use crate::interpret::Interpreter;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
+    use crate::rc;
     use crate::semantic::SemanticAnalyzer;
-    use crate::token::{Token, TokenType};
-    use crate::{interpret, rc, set_token};
-    use num_traits::Bounded;
     use std::cell::RefCell;
     use std::fs::File;
     use std::io::Read;
-    use std::ops::Deref;
     use std::rc::Rc;
 
     #[test]

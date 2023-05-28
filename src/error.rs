@@ -1,4 +1,6 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+
+use crate::object::Object;
 use crate::token::Token;
 
 #[rustfmt::skip]
@@ -7,23 +9,12 @@ pub enum PascalResult {
     ParseError { token: Token, message: String },
     SystemError { token: Token, message: String },
     RuntimeError { token: Token, message: String },
-    Error { lineno: usize, column: usize, message: String },
     Fail,
 }
 
 impl PascalResult {
     pub fn fail() -> Self {
         Self::Fail
-    }
-
-    pub fn error<S: AsRef<str>>(token: &Token, message: S) -> Self {
-        let err = Self::Error {
-            lineno: token.lineno,
-            column: token.column,
-            message: message.as_ref().into(),
-        };
-        err.report("");
-        err
     }
 
     pub fn parse_error<S: AsRef<str>>(token: &Token, message: S) -> Self {
@@ -73,14 +64,6 @@ impl PascalResult {
                     message
                 )
             }
-            PascalResult::Error {
-                lineno,
-                column,
-                message,
-            } => {
-                log::error!("[line: {}, column: {}] : {}", lineno, column, message)
-            }
-
             PascalResult::SystemError { token, message } => {
                 log::error!(
                     "[line: {}, column: {}] Error at '{}': {}",
@@ -93,6 +76,7 @@ impl PascalResult {
             PascalResult::Fail => {
                 unreachable!();
             }
+            _ => {}
         }
     }
 }

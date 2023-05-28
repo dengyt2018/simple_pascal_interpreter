@@ -46,7 +46,7 @@ impl Token {
     }
 
     #[inline]
-    pub fn set_pos(mut self, lexer: &Lexer) -> Self {
+    pub fn set_pos(self, lexer: &Lexer) -> Self {
         self.pos(lexer.lineno, lexer.column)
     }
 
