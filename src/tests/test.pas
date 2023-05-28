@@ -1,9 +1,7 @@
 program Main;
-
+var s : string;
 procedure Alpha(a : integer; b : integer);
 var x : integer;
-var s : string;
-
    procedure Beta(a : integer; b : integer);
    var x : integer;
    begin

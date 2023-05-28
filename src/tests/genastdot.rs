@@ -44,14 +44,11 @@ pub mod gen_ast_dot {
                 Statements::Assign(_) => {
                     self.visit_assign(rclone!(&node));
                 }
-                Statements::Num { .. } => {
-                    self.visit_num(rclone!(&node));
-                }
-                Statements::String { value } => {
-                    self.visit_string(rclone!(&node));
-                }
                 Statements::UnaryOp { .. } => {
                     self.visit_unary(rclone!(&node));
+                }
+                Statements::Object { .. } => {
+                    self.visit_object(rclone!(&node));
                 }
                 Statements::Compound { .. } => {
                     self.visit_compound(rclone!(&node));
@@ -265,21 +262,13 @@ pub mod gen_ast_dot {
             self.node_count += 1;
         }
 
-        fn visit_string(&mut self, node: RefAST) {
-            let s = node.borrow().stat.get_string_object().get_string();
+        fn visit_object(&mut self, node: RefAST) {
+            let s = node.borrow().stat.get_object();
 
-            self.dot_body
-                .push(format!("    node{} [label=\"{}\"]\n", self.node_count, s));
-
-            node.borrow_mut()._num = self.node_count;
-            self.node_count += 1;
-        }
-
-        fn visit_num(&mut self, node: RefAST) {
             self.dot_body.push(format!(
                 "    node{} [label=\"{}\"]\n",
                 self.node_count,
-                node.borrow().stat.get_num()
+                s.borrow().to_string()
             ));
 
             node.borrow_mut()._num = self.node_count;

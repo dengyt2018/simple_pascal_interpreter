@@ -5,29 +5,29 @@ digraph astgraph {
 
     node1 [label="Program"]
     node2 [label="Block"]
-    node3 [label="ProcDecl:Alpha"]
-    node4 [label="Param"]
-    node5 [label="a"]
-    node4 -> node5
-    node6 [label="integer"]
-    node4 -> node6
+    node3 [label="VarDecl"]
+    node4 [label="s"]
     node3 -> node4
+    node5 [label="string"]
+    node3 -> node5
+    node6 [label="ProcDecl:Alpha"]
     node7 [label="Param"]
-    node8 [label="b"]
+    node8 [label="a"]
     node7 -> node8
     node9 [label="integer"]
     node7 -> node9
-    node3 -> node7
-    node10 [label="Block"]
-    node11 [label="VarDecl"]
-    node12 [label="x"]
-    node11 -> node12
-    node13 [label="integer"]
-    node11 -> node13
+    node6 -> node7
+    node10 [label="Param"]
+    node11 [label="b"]
+    node10 -> node11
+    node12 [label="integer"]
+    node10 -> node12
+    node6 -> node10
+    node13 [label="Block"]
     node14 [label="VarDecl"]
-    node15 [label="s"]
+    node15 [label="x"]
     node14 -> node15
-    node16 [label="string"]
+    node16 [label="integer"]
     node14 -> node16
     node17 [label="ProcDecl:Beta"]
     node18 [label="Param"]
@@ -56,13 +56,13 @@ digraph astgraph {
     node32 [label=Mul]
     node33 [label="a"]
     node32 -> node33
-    node34 [label="10"]
+    node34 [label="Integer: <10>"]
     node32 -> node34
     node31 -> node32
     node35 [label=Mul]
     node36 [label="b"]
     node35 -> node36
-    node37 [label="2"]
+    node37 [label="Integer: <2>"]
     node35 -> node37
     node31 -> node35
     node29 -> node31
@@ -83,41 +83,41 @@ digraph astgraph {
     node45 [label="b"]
     node43 -> node45
     node42 -> node43
-    node46 [label="2"]
+    node46 [label="Integer: <2>"]
     node42 -> node46
     node40 -> node42
     node39 -> node40
     node47 [label="ProcCall:Beta"]
-    node48 [label="5"]
+    node48 [label="Integer: <5>"]
     node47 -> node48
-    node49 [label="10"]
+    node49 [label="Integer: <10>"]
     node47 -> node49
     node39 -> node47
     node50 [label="NoOp"]
     node39 -> node50
-    node10 -> node11
-    node10 -> node14
-    node10 -> node17
-    node10 -> node39
-    node3 -> node10
+    node13 -> node14
+    node13 -> node17
+    node13 -> node39
+    node6 -> node13
     node51 [label="Compound"]
     node52 [label="ProcCall:Alpha"]
     node53 [label=Plus]
-    node54 [label="3"]
+    node54 [label="Integer: <3>"]
     node53 -> node54
-    node55 [label="5"]
+    node55 [label="Integer: <5>"]
     node53 -> node55
     node52 -> node53
-    node56 [label="7"]
+    node56 [label="Integer: <7>"]
     node52 -> node56
     node51 -> node52
     node57 [label=":="]
     node58 [label="s"]
     node57 -> node58
-    node59 [label="hello world!"]
+    node59 [label="String: <hello world!>"]
     node57 -> node59
     node51 -> node57
     node2 -> node3
+    node2 -> node6
     node2 -> node51
     node1 -> node2
 }

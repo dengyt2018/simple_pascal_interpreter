@@ -1,44 +1,47 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 pub mod tests {
-    use crate::interpret::Interpreter;
+    use crate::interpret::{ActivationRecord, Interpreter};
     use crate::lexer::Lexer;
     use crate::parser::Parser;
     use crate::semantic::SemanticAnalyzer;
-    use crate::set_token;
     use crate::token::{Token, TokenType};
+    use crate::{interpret, rc, set_token};
     use num_traits::Bounded;
     use std::cell::RefCell;
     use std::fs::File;
     use std::io::Read;
+    use std::ops::Deref;
     use std::rc::Rc;
 
     #[test]
     fn test_stack() {
         let str = "PROGRAM Test;
 VAR
-    a : INTEGER;
+    a : integer;
 BEGIN 
-    a := 125+12;
+    a := 125.0+12+15/12.5;
 END."
             .to_string();
         let tokens = Lexer::new(str).get_tokens();
+        let parse = Parser::new(&tokens).parser();
+        let e = SemanticAnalyzer::new()._visit(rc!(parse.clone()));
 
-        let mut interpreter =
-            Interpreter::new().set_parser(Rc::new(RefCell::new(Parser::new(&tokens).parser())));
-        interpreter.interpret();
-        let mut a = i64::max_value();
-        if let Some(ar) = interpreter.call_stack.recodes_debug.get(0) {
-            if let Some(var) = ar.borrow().get_item("a") {
-                a = *var as i64;
-            }
-        }
-        assert_eq!(137, a);
+        let mut interpret = Interpreter::new()
+            .set_symbol_table(e)
+            .set_parser(rc!(parse));
+
+        interpret.interpret();
+
+        let d = interpret.call_stack.recodes_debug.get(0).unwrap().clone();
+        let m = d.borrow().members.clone();
+
+        assert_eq!(138, m.get("a").unwrap().get_integer_const());
     }
 
     #[test]
     fn test_parser() {
-        let case = vec![
+        let case: Vec<(_, i64)> = vec![
             ("33", 33),
             ("2 + 7 * 4", 30),
             ("7 - 8 DIV 4", 5),
@@ -54,7 +57,7 @@ END."
             ("5 - - - + - 3", 8),
             ("5 - - - + - (3 + 4) - +2", 10),
         ];
-        let interpret = |input: &str, var: i32| {
+        let interpret = |input: &str, var: i64| {
             let input = format!(
                 "
         PROGRAM Test;
@@ -67,18 +70,20 @@ END."
                 var
             );
             let tokens = Lexer::new(input).get_tokens();
-            Interpreter::new().set_parser(Rc::new(RefCell::new(Parser::new(&tokens).parser())))
+            let parse = Parser::new(&tokens).parser();
+            let e = SemanticAnalyzer::new()._visit(rc!(parse.clone()));
+            Interpreter::new()
+                .set_parser(rc!(parse))
+                .set_symbol_table(e)
         };
-        case.iter().for_each(|(input, var)| {
-            let mut i = interpret(input, *var);
+
+        case.iter().for_each(|(x, y)| {
+            let mut i = interpret(x, *y);
             i.interpret();
-            let mut a = i32::max_value();
-            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
-                if let Some(v) = ar.borrow().get_item("a") {
-                    a = *v as i32;
-                }
-            }
-            assert_eq!(a, *var);
+            let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let m = d.borrow().members.clone();
+
+            assert_eq!(*y, m.get("a").unwrap().get_integer_const());
         });
     }
 
@@ -103,27 +108,30 @@ END."
                 s.0
             );
             let tokens = Lexer::new(input).get_tokens();
-            Interpreter::new().set_parser(Rc::new(RefCell::new(Parser::new(&tokens).parser())))
+            let parse = Parser::new(&tokens).parser();
+            let e = SemanticAnalyzer::new()._visit(rc!(parse.clone()));
+            Interpreter::new()
+                .set_parser(rc!(parse))
+                .set_symbol_table(e)
         };
-        case.iter().for_each(|x| {
-            let mut i = interpret((x.0, x.1));
+
+        case.iter().for_each(|(x, y)| {
+            let mut i = interpret((x, *y));
             i.interpret();
-            let mut a = 0.0;
-            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
-                if let Some(v) = ar.borrow().get_item("a") {
-                    a = *v;
-                }
-            }
-            assert_eq!(a, x.1);
+            let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let m = d.borrow().members.clone();
+
+            assert_eq!(*y, m.get("a").unwrap().get_real_const());
         });
     }
 
-    const INPUT: &str = "
+    const INPUT: &str = r#"
 PROGRAM Part12;
 VAR
     number : INTEGER;
     a, b   : INTEGER;
     y      : REAL;
+    z      : STRING;
 
 PROCEDURE P1;
 VAR
@@ -143,27 +151,35 @@ BEGIN {Part12}
     number := 2;
     a := number ;
     b := 10 * a + 10 * number DIV 4;
-    y := 20 / 7 + 3.24
-END.  {Part12}";
+    y := 20 / 7 + 3.24;
+    z := "hello world";
+END.  {Part12}"#;
 
     #[test]
     fn test_statements() {
         let tokens = Lexer::new(INPUT).get_tokens();
-        let mut i =
-            Interpreter::new().set_parser(Rc::new(RefCell::new(Parser::new(&tokens).parser())));
+        let parse = Parser::new(&tokens).parser();
+        let e = SemanticAnalyzer::new()._visit(rc!(parse.clone()));
+        let mut i = Interpreter::new()
+            .set_parser(rc!(parse))
+            .set_symbol_table(e);
+
         i.interpret();
 
-        if let Some(ar) = i.call_stack.recodes_debug.get(0) {
-            let a = *ar.borrow().get_item("a").unwrap();
-            let b = *ar.borrow().get_item("b").unwrap();
-            let y = *ar.borrow().get_item("y").unwrap();
-            let number = *ar.borrow().get_item("number").unwrap();
+        let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+        let m = d.borrow().members.clone();
 
-            assert_eq!(a as i64, 2);
-            assert_eq!(b as i64, 25);
-            assert_eq!(number as i64, 2);
-            assert_eq!(y, ((20.0 / 7.0) + 3.24));
-        }
+        let a = m.get("a").unwrap().get_integer_const();
+        let b = m.get("b").unwrap().get_integer_const();
+        let z = m.get("z").unwrap().get_string();
+        let number = m.get("number").unwrap().get_integer_const();
+        let y = m.get("y").unwrap().get_real_const();
+
+        assert_eq!(2, number);
+        assert_eq!(a, number);
+        assert_eq!(10 * a + 10 * number / 4, b);
+        assert_eq!(20.0 / 7.0 + 3.24, y);
+        assert_eq!("hello world".to_string(), z);
     }
 
     const INPUT2: &str = "program Main;
@@ -202,8 +218,7 @@ end.  { Main }
     #[test]
     fn test_input2() {
         let tokens = Lexer::new(INPUT2).get_tokens();
-        let k =
-            SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(Parser::new(&tokens).parser())));
+        let k = SemanticAnalyzer::new()._visit(rc!(Parser::new(&tokens).parser()));
         k.iter().for_each(|s| {
             eprintln!("{}\n", s.borrow().to_string());
         });
@@ -220,7 +235,7 @@ end.  { Main }
 
             let tokens = Lexer::new(buff).get_tokens();
 
-            SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(Parser::new(&tokens).parser())));
+            SemanticAnalyzer::new()._visit(rc!(Parser::new(&tokens).parser()));
         }
     }
 
@@ -256,7 +271,7 @@ end.  { Main }
     #[should_panic]
     fn test_proccall_error() {
         let tokens = Lexer::new(WRONG_PARAMS_NUM).get_tokens();
-        SemanticAnalyzer::new()._visit(Rc::new(RefCell::new(Parser::new(&tokens).parser())));
+        SemanticAnalyzer::new()._visit(rc!(Parser::new(&tokens).parser()));
     }
 
     #[test]
@@ -269,24 +284,20 @@ end.  { Main }
             file.read_to_string(&mut buff).expect("read file error");
 
             let tokens = Lexer::new(buff).get_tokens();
-
-            let ast = Rc::new(RefCell::new(Parser::new(&tokens).parser()));
-
+            let ast = rc!(Parser::new(&tokens).parser());
             let e = SemanticAnalyzer::new()._visit(ast.clone());
-
             let mut i = Interpreter::new().set_symbol_table(e).set_parser(ast);
-
             i._interpret();
 
-            test_cases.iter().for_each(|x| {
-                assert_eq!(
-                    x.1,
-                    *i.call_stack.recodes_debug[1]
-                        .borrow()
-                        .get_item(x.0)
-                        .unwrap() as i32
-                )
+            let d = i.call_stack.recodes_debug.get(1).unwrap().clone();
+            let m = d.borrow().members.clone();
+
+            test_cases.iter().for_each(|(x, y)| {
+                let value = m.get(*x).unwrap().get_integer_const();
+                assert_eq!(*y, value, "test_proccall: {} == {}", *y, value);
             });
+        } else {
+            panic!("file {} can not open.", path);
         }
     }
 
@@ -306,29 +317,30 @@ end.  { Main }
 
             i._interpret();
 
-            let test_cases = vec![("a", 8), ("b", 7), ("x", 30)];
-            test_cases.iter().for_each(|x| {
-                assert_eq!(
-                    x.1,
-                    *i.call_stack.recodes_debug[1]
-                        .borrow()
-                        .get_item(x.0)
-                        .unwrap() as i32
-                )
-            });
+            let alpha = i.call_stack.recodes_debug.get(1).unwrap().clone();
+            let alpha = alpha.borrow().members.clone();
 
-            let test_cases2 = vec![("a", 5), ("b", 10), ("x", 70)];
-            test_cases2.iter().for_each(|x| {
-                assert_eq!(
-                    x.1,
-                    *i.call_stack.recodes_debug[2]
-                        .borrow()
-                        .get_item(x.0)
-                        .unwrap() as i32
-                )
-            });
+            let a = alpha.get("a").unwrap().get_integer_const();
+            let b = alpha.get("b").unwrap().get_integer_const();
+            let x = alpha.get("x").unwrap().get_integer_const();
+            assert_eq!(8, a);
+            assert_eq!(7, b);
+            assert_eq!(30, x);
 
-            eprintln!("{:#?}", i.call_stack.recodes_debug);
+            let beta = i.call_stack.recodes_debug.get(2).unwrap().clone();
+            let beta = beta.borrow().members.clone();
+            let a = beta.get("a").unwrap().get_integer_const();
+            let b = beta.get("b").unwrap().get_integer_const();
+            let x = beta.get("x").unwrap().get_integer_const();
+            assert_eq!(5, a);
+            assert_eq!(10, b);
+            assert_eq!(70, x);
+
+            let s = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let s = s.borrow().members.clone().get("s").unwrap().get_string();
+            assert_eq!("hello world!".to_string(), s);
+        } else {
+            panic!("file {} can not open.", path);
         }
     }
 }

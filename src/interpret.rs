@@ -1,10 +1,12 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+use crate::object::Object;
 use crate::parser::{ASTTree, RefAST, Statements};
-use crate::semantic::ScopedSymbolTable;
+use crate::semantic::{ScopedSymbolTable, SymbolType};
 use crate::token::TokenType;
 use crate::{rc, rclone};
 use std::cell::RefCell;
 use std::collections::{HashMap, LinkedList};
+use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -18,7 +20,7 @@ pub struct ActivationRecord {
     name: String,
     record_type: ARType,
     nesting_level: usize,
-    members: HashMap<String, f64>,
+    pub(crate) members: HashMap<String, Object>,
 }
 
 impl ActivationRecord {
@@ -31,11 +33,11 @@ impl ActivationRecord {
         }
     }
 
-    pub fn set_item<S: AsRef<str>>(&mut self, key: S, value: f64) {
+    pub fn set_item<S: AsRef<str>>(&mut self, key: S, value: Object) {
         self.members.insert(key.as_ref().into(), value);
     }
 
-    pub fn get_item<S: AsRef<str>>(&self, key: S) -> Option<&f64> {
+    pub fn get_item<S: AsRef<str>>(&self, key: S) -> Option<&Object> {
         self.members.get(key.as_ref())
     }
 }
@@ -92,7 +94,7 @@ impl Interpreter {
         self
     }
 
-    fn visit(&mut self, node: RefAST) -> Option<f64> {
+    fn visit(&mut self, node: RefAST) -> Option<Object> {
         let stat = node.as_ref().borrow().stat.clone();
 
         match stat {
@@ -101,8 +103,8 @@ impl Interpreter {
                 self.visit_assign(rclone!(&node));
                 None
             }
-            Statements::Num { .. } => Some(self.visit_num(rclone!(&node))),
             Statements::UnaryOp { .. } => Some(self.visit_unary(rclone!(&node))),
+            Statements::Object { .. } => Some(self.visit_object(rclone!(&node))),
             Statements::Compound { .. } => {
                 self.visit_compound(rclone!(&node));
                 None
@@ -166,11 +168,12 @@ impl Interpreter {
         {}
     }
 
-    fn visit_binop(&mut self, node: RefAST) -> f64 {
+    fn visit_binop(&mut self, node: RefAST) -> Object {
         let left = self.visit(node.borrow().left.clone().unwrap()).unwrap();
         let right = self.visit(node.borrow().right.clone().unwrap()).unwrap();
 
         let token = node.borrow().stat.get_token();
+
         if token.token_type == TokenType::Plus {
             left + right
         } else if token.token_type == TokenType::Minus {
@@ -178,9 +181,9 @@ impl Interpreter {
         } else if token.token_type == TokenType::Mul {
             left * right
         } else if token.token_type == TokenType::IntegerDiv {
-            (left / right) as i64 as f64
-        } else if token.token_type == TokenType::FloatDiv {
             left / right
+        } else if token.token_type == TokenType::FloatDiv {
+            Object::RealConst(left.get_real_const()) / Object::RealConst(right.get_real_const())
         } else if token.token_type == TokenType::Modulo {
             left % right
         } else {
@@ -188,15 +191,7 @@ impl Interpreter {
         }
     }
 
-    fn visit_num(&mut self, node: RefAST) -> f64 {
-        node.borrow()
-            .stat
-            .get_num()
-            .parse::<f64>()
-            .unwrap_or_else(|_| panic!("visit_num parse error. found {:#?}", node.borrow().stat))
-    }
-
-    fn visit_unary(&mut self, node: RefAST) -> f64 {
+    fn visit_unary(&mut self, node: RefAST) -> Object {
         let (token, node) = node.borrow().stat.get_unary();
 
         match token.token_type {
@@ -208,6 +203,13 @@ impl Interpreter {
         }
     }
 
+    fn visit_object(&mut self, node: RefAST) -> Object {
+        let object = node.borrow().stat.get_object();
+
+        let o = object.borrow().deref().clone();
+        o
+    }
+
     fn visit_compound(&mut self, node: RefAST) {
         let children = node.borrow().stat.get_compound();
         children.borrow().iter().for_each(|child| {
@@ -217,23 +219,46 @@ impl Interpreter {
 
     fn visit_assign(&mut self, node: RefAST) {
         if let Some(var_name) = node.borrow().left.clone() {
-            let var_name = var_name.take().stat.get_token().token_value;
+            let var_name = var_name.borrow().deref().stat.get_token().token_value;
 
             if let Some(var) = node.borrow().right.clone() {
                 if let Some(v) = self.visit(var) {
                     if let Some(ar) = self.call_stack.peek() {
-                        ar.borrow_mut().set_item(var_name, v);
+                        self.symbol_table.iter().for_each(|table| {
+                            let sc_lv = table.borrow().deref().scope_level;
+                            let ar_lv = ar.borrow().nesting_level;
+
+                            if sc_lv == ar_lv {
+                                if let Some(ty) = table.borrow().get_symbol_type(&var_name) {
+                                    match ty {
+                                        SymbolType::Integer => {
+                                            let value = v.get_integer_const();
+                                            ar.borrow_mut()
+                                                .set_item(&var_name, Object::IntegerConst(value));
+                                        }
+                                        SymbolType::Real => {
+                                            let value = v.get_real_const();
+                                            ar.borrow_mut()
+                                                .set_item(&var_name, Object::RealConst(value));
+                                        }
+                                        SymbolType::String => {
+                                            ar.borrow_mut().set_item(&var_name, v.clone());
+                                        }
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             }
         }
     }
 
-    fn visit_var(&mut self, node: RefAST) -> f64 {
+    fn visit_var(&mut self, node: RefAST) -> Object {
         let var_name = node.borrow().stat.get_token().token_value;
         if let Some(ar) = self.call_stack.peek() {
             if let Some(var_value) = ar.borrow().get_item(var_name) {
-                *var_value
+                var_value.clone()
             } else {
                 panic!("");
             }
@@ -264,8 +289,23 @@ impl Interpreter {
                     block_ast = proc.block_ast.take();
                     proc.params.iter().zip(&proccal).for_each(|x| {
                         let num = self.visit(rclone!(x.1)).unwrap();
+                        let name = x.0.symbol_name.clone();
                         ar.nesting_level = table.borrow().scope_level;
-                        ar.set_item(x.0.symbol_name.clone(), num);
+                        if let Some(symbol_type) = table.borrow().get_symbol_type(&name) {
+                            match symbol_type {
+                                SymbolType::Integer => {
+                                    let v = num.get_integer_const();
+                                    ar.set_item(name, Object::IntegerConst(v));
+                                }
+                                SymbolType::Real => {
+                                    let v = num.get_real_const();
+                                    ar.set_item(name, Object::RealConst(v));
+                                }
+                                SymbolType::String => {
+                                    ar.set_item(name, num);
+                                }
+                            }
+                        }
                     });
                 }
             }

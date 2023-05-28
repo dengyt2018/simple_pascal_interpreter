@@ -103,7 +103,7 @@ impl Lexer {
             } else {
                 panic!("")
             }
-        } else if let Ok(r) = result.iter().collect::<String>().parse::<u64>() {
+        } else if let Ok(r) = result.iter().collect::<String>().parse::<i64>() {
             set_token!(
                 TokenType::IntegerConst,
                 result.iter().collect::<String>(),
@@ -167,7 +167,7 @@ impl Lexer {
 
         let str = string.iter().collect::<String>();
 
-        set_token!(TokenType::String, "STRING", self).set_object(Some(Object::Identifier(str)))
+        set_token!(TokenType::String, "STRING", self).set_object(Some(Object::Str(str)))
     }
 
     /**
@@ -363,7 +363,7 @@ END. {Part12}"#
         set_token!(TokenType::Id, "a", 21, 6),
         set_token!(TokenType::Assign, ":=", 21, 9),
         set_token!(TokenType::String, "STRING", 21, 22)
-            .set_object(Some(Object::Identifier("string abc".to_string()))),
+            .set_object(Some(Object::Str("string abc".to_string()))),
         set_token!(TokenType::Semi, ";", 21, 23),
         set_token!(TokenType::Id, "a", 22, 6),
         set_token!(TokenType::Assign, ":=", 22, 9),

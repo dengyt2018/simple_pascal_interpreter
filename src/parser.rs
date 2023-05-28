@@ -20,11 +20,8 @@ pub enum Statements {
     Assign(Token),
     Var(Token),
     NoOp,
-    String {
-        value: Object,
-    },
-    Num {
-        value: std::string::String,
+    Object {
+        value: Rc<RefCell<Object>>,
     },
     UnaryOp {
         token: Token,
@@ -62,9 +59,9 @@ pub enum Statements {
 }
 
 impl Statements {
-    pub fn get_num(&self) -> std::string::String {
+    pub fn get_object(&self) -> Rc<RefCell<Object>> {
         match self {
-            Statements::Num { value } => value.clone(),
+            Statements::Object { value } => rclone!(value),
             _ => {
                 unreachable!();
             }
@@ -175,15 +172,6 @@ impl Statements {
             }
         }
     }
-
-    pub fn get_string_object(&self) -> Object {
-        match self {
-            Statements::String { value } => value.clone(),
-            _ => {
-                unreachable!();
-            }
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -212,15 +200,6 @@ impl ASTTree {
     }
 
     #[inline]
-    pub fn num<S: AsRef<str>>(s: S) -> Self {
-        let mut node = ASTTree::default();
-        node.set_stat(Statements::Num {
-            value: s.as_ref().into(),
-        });
-        node
-    }
-
-    #[inline]
     pub fn var(token: Token) -> Self {
         let mut node = ASTTree::default();
         node.set_stat(Statements::Var(token));
@@ -228,9 +207,9 @@ impl ASTTree {
     }
 
     #[inline]
-    pub fn string(object: Object) -> Self {
+    pub fn object(object: Object) -> Self {
         let mut node = ASTTree::default();
-        node.set_stat(Statements::String { value: object });
+        node.set_stat(Statements::Object { value: rc!(object) });
         node
     }
 
@@ -663,7 +642,7 @@ impl<'a> Parser<'a> {
         if peek.token_type == TokenType::String {
             if let Some(object) = peek.literal.clone() {
                 self.eat(TokenType::String);
-                right = ASTTree::string(object);
+                right = ASTTree::object(object);
             }
             self.eat(TokenType::Semi);
         } else {
@@ -717,11 +696,11 @@ impl<'a> Parser<'a> {
             }
             TokenType::IntegerConst => {
                 self.eat(TokenType::IntegerConst);
-                ASTTree::num(token.token_value)
+                ASTTree::object(token.literal.unwrap())
             }
             TokenType::RealConst => {
                 self.eat(TokenType::RealConst);
-                ASTTree::num(token.token_value)
+                ASTTree::object(token.literal.unwrap())
             }
             TokenType::Lbrack => {
                 self.eat(TokenType::Lbrack);

@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, LinkedList};
 use std::fmt;
 use std::fmt::Display;
+use std::ops::Deref;
 use std::rc::Rc;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -204,6 +205,15 @@ impl ScopedSymbolTable {
     pub fn lookup<S: AsRef<str>>(&self, name: S) -> Option<&Rc<RefCell<Symbol>>> {
         self._symbols.get(name.as_ref())
     }
+
+    pub fn get_symbol_type<S: AsRef<str>>(&self, name: S) -> Option<SymbolType> {
+        if let Some(ty) = self._symbols.get(name.as_ref()) {
+            let symbol = ty.borrow().deref().clone();
+            let VarSymbol { symbol_type, .. } = symbol.get_var();
+            return Some(symbol_type);
+        }
+        None
+    }
 }
 
 impl SemanticAnalyzer {
@@ -236,12 +246,6 @@ impl SemanticAnalyzer {
             }
             Statements::Assign(_) => {
                 self.visit_assign(rclone!(&node));
-            }
-            Statements::Num { .. } => {
-                self.visit_num(rclone!(&node));
-            }
-            Statements::String { .. } => {
-                self.visit_string(rclone!(&node));
             }
             Statements::UnaryOp { .. } => {
                 self.visit_unary(rclone!(&node));
@@ -311,14 +315,6 @@ impl SemanticAnalyzer {
         if let Some(right) = node.borrow().right.clone() {
             self.visit(right);
         }
-    }
-
-    fn visit_num(&mut self, _node: RefAST) {
-        {}
-    }
-
-    fn visit_string(&mut self, _node: RefAST) {
-        {}
     }
 
     fn visit_procedure_call(&mut self, node: RefAST) {
