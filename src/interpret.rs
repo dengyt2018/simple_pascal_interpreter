@@ -237,7 +237,9 @@ impl Interpreter {
 
     fn visit_assign(&mut self, node: RefAST) {
         if let Some(var_name) = node.borrow().left.clone() {
-            let var_name = var_name.borrow().deref().stat.get_token().token_value;
+            let token = var_name.borrow().stat.get_token().clone();
+            let mut set_item = false;
+            let var_name = token.token_value.clone();
 
             if let Some(var) = node.borrow().right.clone() {
                 if let Some(v) = self.visit(var) {
@@ -263,9 +265,22 @@ impl Interpreter {
                                             ar.borrow_mut().set_item(&var_name, v.clone());
                                         }
                                     }
+                                    set_item = true;
                                 }
                             }
                         });
+                        let scope_name = &ar.borrow().name;
+
+                        if !set_item {
+                            PascalResult::runtime_error(
+                                &token,
+                                format!(
+                                    r#"Assign a value should define first.
+scope: {} value: {}, have no define in correct place."#,
+                                    scope_name, var_name
+                                ),
+                            );
+                        }
                     }
                 }
             }

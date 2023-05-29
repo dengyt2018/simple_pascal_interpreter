@@ -1,5 +1,6 @@
 #![allow(non_camel_case_types, dead_code, unused)]
 
+use crate::error::PascalResult;
 use crate::object::Object;
 use crate::rc;
 use crate::rclone;
@@ -347,10 +348,14 @@ impl<'a> Parser<'a> {
         if match_token!(self, token_type) {
             self.current_pos += 1;
         } else {
-            panic!(
-                "Parser {} Expected: {:#?}",
-                self.tokens[self.current_pos].error(ErrorCode::UnexpectedToken),
-                token_type
+            let token = self.tokens[self.current_pos].clone();
+            PascalResult::parse_error(
+                &token,
+                format!(
+                    "Parser {} Expected: {:#?}",
+                    token.error(ErrorCode::UnexpectedToken),
+                    token_type
+                ),
             );
         }
     }
@@ -636,19 +641,7 @@ impl<'a> Parser<'a> {
 
         self.eat(TokenType::Assign);
 
-        let mut right = ASTTree::default();
-
-        if peek.token_type == TokenType::String {
-            if let Some(object) = peek.literal {
-                self.eat(TokenType::String);
-                right = ASTTree::object(object);
-            }
-            self.eat(TokenType::Semi);
-        } else {
-            right = self.expr();
-        }
-
-        ASTTree::new(left, Statements::Assign(token), right).take()
+        ASTTree::new(left, Statements::Assign(token), self.expr()).take()
     }
 
     ///
@@ -699,6 +692,10 @@ impl<'a> Parser<'a> {
             }
             TokenType::RealConst => {
                 self.eat(TokenType::RealConst);
+                ASTTree::object(token.literal.unwrap())
+            }
+            TokenType::String => {
+                self.eat(TokenType::String);
                 ASTTree::object(token.literal.unwrap())
             }
             TokenType::Lbrack => {
@@ -810,11 +807,12 @@ impl<'a> Parser<'a> {
     ///
     pub fn parser(&mut self) -> ASTTree {
         let node = self.program();
-        //if self.current_token.token_type != TokenType::Eof {
+
         if !self.is_at_end() {
-            panic!(
-                "Parser {}",
-                self.tokens[self.current_pos].error(ErrorCode::UnexpectedToken)
+            let token = self.tokens[self.current_pos].clone();
+            PascalResult::parse_error(
+                &token,
+                format!("Parser {}", token.error(ErrorCode::UnexpectedToken),),
             );
         }
         node

@@ -341,4 +341,29 @@ end.  { Main }
             panic!("file {} can not open.", path);
         }
     }
+
+    #[test]
+    fn test_string_extend() {
+        let str = r#"PROGRAM TestString;
+VAR
+    a : string;
+BEGIN 
+    a := "ABC"+"ADC"+"AFC" + 15;
+END."#
+            .to_string();
+        let tokens = Lexer::new(str).get_tokens();
+        let parse = Parser::new(&tokens).parser();
+        let e = SemanticAnalyzer::new()._visit(rc!(parse.clone()));
+
+        let mut interpret = Interpreter::new()
+            .set_symbol_table(e)
+            .set_parser(rc!(parse));
+
+        interpret.interpret();
+
+        let d = interpret.call_stack.recodes_debug.get(0).unwrap().clone();
+        let m = d.borrow().members.clone();
+
+        assert_eq!("ABCADCAFC15".to_string(), m.get("a").unwrap().get_string());
+    }
 }

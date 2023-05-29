@@ -1,5 +1,7 @@
 #![allow(non_camel_case_types, dead_code, unused)]
 
+use crate::error::PascalResult;
+use crate::error::PascalResult::ParseError;
 use std::fmt::{Display, Formatter};
 use std::ops::{Add, Div, Mul, Neg, Rem, Sub};
 
@@ -102,9 +104,8 @@ impl Object {
     pub fn get_string(&self) -> String {
         match self {
             Object::Str(s) => s.clone(),
-            _ => {
-                unreachable!()
-            }
+            Object::RealConst(r) => r.to_string(),
+            Object::IntegerConst(i) => i.to_string(),
         }
     }
 
@@ -112,8 +113,13 @@ impl Object {
         match self {
             Object::RealConst(f) => *f,
             Object::IntegerConst(f) => *f as f64,
-            _ => {
-                unreachable!()
+            Object::Str(s) => {
+                if let Ok(v) = s.parse::<f64>() {
+                    v
+                } else {
+                    PascalResult::error(0, 0, format!("Can not parse string '{}' to a float.", s));
+                    panic!();
+                }
             }
         }
     }
@@ -122,8 +128,13 @@ impl Object {
         match self {
             Object::IntegerConst(u) => *u,
             Object::RealConst(u) => *u as i64,
-            _ => {
-                unreachable!()
+            Object::Str(s) => {
+                if let Ok(v) = s.parse::<i64>() {
+                    v
+                } else {
+                    PascalResult::error(0, 0, format!("Can not parse string '{}' to a float.", s));
+                    panic!();
+                }
             }
         }
     }

@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+use crate::error::PascalResult;
 use crate::object::Object;
 use crate::set_token;
 use crate::token::{ReservedKeywords, Token, TokenType};
@@ -86,6 +87,7 @@ impl Lexer {
     fn number(&mut self) -> Token {
         let mut result = vec![];
         self.integer(&mut result);
+        let r = result.iter().collect::<String>();
 
         if self.current_char == '.' {
             result.push(self.current_char);
@@ -93,7 +95,9 @@ impl Lexer {
 
             self.integer(&mut result);
 
-            if let Ok(r) = result.iter().collect::<String>().parse::<f64>() {
+            let r = result.iter().collect::<String>();
+
+            if let Ok(r) = r.parse::<f64>() {
                 set_token!(
                     TokenType::RealConst,
                     result.iter().collect::<String>(),
@@ -101,6 +105,11 @@ impl Lexer {
                 )
                 .set_object(Some(Object::RealConst(r)))
             } else {
+                PascalResult::error(
+                    self.lineno,
+                    self.column,
+                    format!("Integer {} parse Error.", r),
+                );
                 panic!("")
             }
         } else if let Ok(r) = result.iter().collect::<String>().parse::<i64>() {
@@ -111,6 +120,11 @@ impl Lexer {
             )
             .set_object(Some(Object::IntegerConst(r)))
         } else {
+            PascalResult::error(
+                self.lineno,
+                self.column,
+                format!("Integer {} parse Error.", r),
+            );
             panic!("")
         }
     }
@@ -159,7 +173,11 @@ impl Lexer {
         }
 
         if self.current_char == '\0' {
-            panic!("Unterminated string. line: {}", self.lineno);
+            PascalResult::error(
+                self.lineno,
+                self.column,
+                format!("Unterminated string. line: {}", self.lineno),
+            );
         }
 
         // the closing ".

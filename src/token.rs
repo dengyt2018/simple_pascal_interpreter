@@ -74,31 +74,12 @@ impl Token {
 
     #[inline]
     pub(crate) fn error(&self, code: ErrorCode) -> String {
-        let mut error_code = String::new();
         match code {
-            ErrorCode::UnexpectedToken => {
-                error_code = "Unexpected token".to_string();
-            }
-            ErrorCode::DuplicateId => {
-                error_code = "Symbol(identifier) not found".to_string();
-            }
-            ErrorCode::IdNotFound => {
-                error_code = "Duplicate id found".to_string();
-            }
-            ErrorCode::WrongParamsNum => {
-                error_code = "Wrong number of arguments".to_string();
-                return format!(
-                    "Error <{}>, on line: {} column: {}.",
-                    self.get_value(),
-                    self.lineno,
-                    self.column
-                );
-            }
+            ErrorCode::UnexpectedToken => "Unexpected token".to_string(),
+            ErrorCode::DuplicateId => "Duplicate id found".to_string(),
+            ErrorCode::IdNotFound => "Symbol(identifier) not found".to_string(),
+            ErrorCode::WrongParamsNum => "Wrong number of arguments".to_string(),
         }
-        format!(
-            "Error {} '{}', on line: {} column: {}.",
-            error_code, self.token_value, self.lineno, self.column
-        )
     }
 }
 

@@ -9,12 +9,23 @@ pub enum PascalResult {
     ParseError { token: Token, message: String },
     SystemError { token: Token, message: String },
     RuntimeError { token: Token, message: String },
+    Error { lineno: usize, column: usize, message: String },
     Fail,
 }
 
 impl PascalResult {
     pub fn fail() -> Self {
         Self::Fail
+    }
+
+    pub fn error<S: AsRef<str>>(lineno: usize, column: usize, message: S) -> Self {
+        let err = Self::Error {
+            lineno,
+            column,
+            message: message.as_ref().into(),
+        };
+        err.report("");
+        err
     }
 
     pub fn parse_error<S: AsRef<str>>(token: &Token, message: S) -> Self {
@@ -48,30 +59,41 @@ impl PascalResult {
         match self {
             PascalResult::ParseError { token, message } => {
                 log::error!(
-                    "[line: {}, column: {}] Error at '{}': {}",
+                    "Parse Error [line: {}, column: {}] Error at '{}': {}",
                     token.lineno,
                     token.column,
                     token.token_value,
                     message
-                )
+                );
+                panic!();
             }
             PascalResult::RuntimeError { token, message } => {
                 log::error!(
-                    "[line: {}, column: {}] Error at '{}': {}",
+                    "Runtime Error [line: {}, column: {}] Error at '{}': {}",
                     token.lineno,
                     token.column,
                     token.token_value,
                     message
-                )
+                );
+                panic!();
             }
             PascalResult::SystemError { token, message } => {
                 log::error!(
-                    "[line: {}, column: {}] Error at '{}': {}",
+                    "System Error [line: {}, column: {}] Error at '{}': {}",
                     token.lineno,
                     token.column,
                     token.token_value,
                     message
-                )
+                );
+                panic!();
+            }
+            PascalResult::Error {
+                lineno,
+                column,
+                message,
+            } => {
+                log::error!("Error [line: {}, column: {}] : {}", lineno, column, message);
+                panic!()
             }
             PascalResult::Fail => {
                 unreachable!();

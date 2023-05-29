@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+use crate::error::PascalResult;
 use crate::parser::{RefAST, Statements};
 use crate::token::{ErrorCode, TokenType};
 use crate::{rc, rclone};
@@ -320,14 +321,17 @@ impl SemanticAnalyzer {
     fn visit_procedure_call(&mut self, node: RefAST) {
         let (proc_name, actual_params) = node.borrow().stat.get_procedure_call();
 
-        if let Some(symbol) = self.lookup(proc_name.get_value()) {
+        if let Some(symbol) = self.lookup_all(proc_name.get_value()) {
             let params_nums = symbol.borrow().get_procedure().params.len();
             if actual_params.len() != params_nums {
-                panic!(
-                    "Semantic {} expected {} argument(s), found {}",
-                    proc_name.error(ErrorCode::WrongParamsNum),
-                    params_nums,
-                    actual_params.len(),
+                PascalResult::parse_error(
+                    &proc_name,
+                    format!(
+                        "Procedure {} expected {} argument(s), found {}",
+                        proc_name.error(ErrorCode::WrongParamsNum),
+                        params_nums,
+                        actual_params.len(),
+                    ),
                 );
             }
         }
@@ -393,21 +397,14 @@ impl SemanticAnalyzer {
 
     fn visit_var_decl(&mut self, node: RefAST) {
         let (var_name, var_type) = node.borrow().stat.get_var_decl();
-
-        let type_name = var_name.borrow().stat.get_token().token_value;
+        let token = var_name.borrow().stat.get_token();
+        let type_name = token.get_value();
         let type_symbol = SymbolType::from(var_type.borrow().stat.get_token().token_type);
 
         let var_symbol = VarSymbol::new(&type_name, type_symbol);
 
         if self.lookup(&type_name).is_some() {
-            panic!(
-                "{}",
-                var_name
-                    .borrow()
-                    .stat
-                    .get_token()
-                    .error(ErrorCode::DuplicateId)
-            );
+            PascalResult::parse_error(&token, token.error(ErrorCode::IdNotFound));
         }
 
         self.current_scope
@@ -426,12 +423,11 @@ impl SemanticAnalyzer {
     }
 
     fn visit_var(&mut self, node: RefAST) {
-        let var_name = node.borrow().stat.get_token().get_value();
+        let token = node.borrow().stat.get_token();
+        let var_name = token.get_value();
+
         if self.lookup_all(var_name).is_none() {
-            panic!(
-                "{}",
-                node.borrow().stat.get_token().error(ErrorCode::IdNotFound)
-            );
+            PascalResult::parse_error(&token, token.error(ErrorCode::IdNotFound));
         }
     }
 
