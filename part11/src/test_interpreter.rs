@@ -115,11 +115,9 @@ END."
 
     #[test]
     fn test_parse2() {
-        let case = vec![
-            ("3.24", 3.24),
+        let case = [("3.24", 3.24),
             ("2.14 + 7 * 4", 30.14),
-            ("7.14 - 8 / 4", 5.14),
-        ];
+            ("7.14 - 8 / 4", 5.14)];
 
         let interpret = |s: (&str, f64)| {
             let input = format!(
@@ -164,7 +162,7 @@ BEGIN {Part10}
     y := 20 / 7 + 3.24;
 END.  {Part10}
 "
-        .to_string();
+            .to_string();
 
         let results = Interpreter::<f64>::new(Parser::new(Lexer::new(input))).interpret();
         assert_eq!(results.len(), 6);
@@ -196,7 +194,7 @@ BEGIN {Part10}
     y := 20 / 7 + 3.24;
 END.  {Part10}
 "
-        .to_string();
+            .to_string();
 
         let node = Parser::new(Lexer::new(input)).parser();
 
@@ -204,7 +202,6 @@ END.  {Part10}
     }
 
     #[test]
-
     fn test_file() {
         let path = "./part11.pas";
         do_test_file(path);

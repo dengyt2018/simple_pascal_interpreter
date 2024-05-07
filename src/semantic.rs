@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+
 use crate::error::PascalResult;
 use crate::parser::{RefAST, Statements};
 use crate::token::{ErrorCode, TokenType};
@@ -115,10 +116,10 @@ impl Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Symbol::Var(v) => {
-                write!(f, "{}", v.to_string())
+                write!(f, "{}", v)
             }
             Symbol::Procedure(p) => {
-                write!(f, "{}", p.to_string())
+                write!(f, "{}", p)
             }
         }
     }
@@ -163,7 +164,7 @@ impl Display for ScopedSymbolTable {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut symbols = vec![];
         self._symbols.iter().for_each(|(_, symbol)| {
-            symbols.push(format!("{}", symbol.borrow().to_string()));
+            symbols.push(symbol.borrow().to_string());
         });
         write!(
             f,
@@ -188,11 +189,9 @@ impl ScopedSymbolTable {
         }
     }
     pub fn _init_builtins(&mut self) {
-        let b = vec![
-            VarSymbol::set_real("REAL"),
+        let b = [VarSymbol::set_real("REAL"),
             VarSymbol::set_integer("INTEGER"),
-            VarSymbol::set_string("STRING"),
-        ];
+            VarSymbol::set_string("STRING")];
         b.iter().for_each(|x| self.insert(Symbol::Var(x.clone())));
     }
 
@@ -227,7 +226,7 @@ impl SemanticAnalyzer {
 
     pub fn lookup_all<S: AsRef<str>>(&self, name: S) -> Option<Rc<RefCell<Symbol>>> {
         for scope in &self.scopes {
-            if let Some(s) = scope.borrow()._symbols.get(name.as_ref().clone()) {
+            if let Some(s) = scope.borrow()._symbols.get(name.as_ref()) {
                 return Some(rclone!(s));
             }
         }

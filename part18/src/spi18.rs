@@ -283,8 +283,8 @@ pub mod pascal_parser {
         }
 
         /**
-            Handle identifiers and reserved keywords
-        */
+        Handle identifiers and reserved keywords
+         */
         fn _id(&mut self) -> Token {
             let mut buffer = Vec::new();
             while !self.current_char.is_whitespace() && self.current_char.is_alphanumeric() {
@@ -312,11 +312,11 @@ pub mod pascal_parser {
         }
 
         /**
-            Lexical analyzer (also known as scanner or tokenizer)
+        Lexical analyzer (also known as scanner or tokenizer)
 
-            This method is responsible for breaking a sentence
-            apart into tokens. One token at a time.
-        */
+        This method is responsible for breaking a sentence
+        apart into tokens. One token at a time.
+         */
         pub fn get_next_token(&mut self) -> Token {
             let mut token = Token::default();
             while self.current_char != '\0' {
@@ -840,7 +840,7 @@ pub mod pascal_parser {
         ```
             formal_parameters : ID (COMMA ID)* COLON type_spec
         ```
-        */
+         */
         fn formal_parameters(&mut self) -> Vec<Rc<RefCell<ASTTree>>> {
             let mut param_nodes = vec![];
 
@@ -867,7 +867,7 @@ pub mod pascal_parser {
             formal_parameter_list : formal_parameters
                         | formal_parameters SEMI formal_parameter_list
         ```
-        */
+         */
         fn formal_parameter_list(&mut self) -> Option<Vec<Rc<RefCell<ASTTree>>>> {
             if self.current_token.token_type != Id {
                 return None;
@@ -1487,6 +1487,7 @@ pub mod pascal_parser {
             self._interpret();
         }
     }
+
     #[derive(Debug, Eq, PartialEq, Clone)]
     pub enum SymbolType {
         Integer,
@@ -1496,8 +1497,8 @@ pub mod pascal_parser {
     impl From<TokenType> for SymbolType {
         fn from(value: TokenType) -> Self {
             match value {
-                TokenType::Integer => SymbolType::Integer,
-                TokenType::Real => SymbolType::Real,
+                Integer => SymbolType::Integer,
+                Real => SymbolType::Real,
                 _ => {
                     panic!("symbol type error: {:#?}", value)
                 }
@@ -1506,7 +1507,7 @@ pub mod pascal_parser {
     }
 
     impl Display for SymbolType {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             match self {
                 SymbolType::Integer => {
                     write!(f, "INTEGER")
@@ -1534,7 +1535,7 @@ pub mod pascal_parser {
     }
 
     impl Display for VarSymbol {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             write!(f, "symbol<{}:{}>", self.symbol_name, self.symbol_type)
         }
     }
@@ -1564,7 +1565,7 @@ pub mod pascal_parser {
     }
 
     impl Display for ProcedureSymbol {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let mut params = vec![];
             self.params.iter().for_each(|v| {
                 params.push(v.to_string());
@@ -1580,13 +1581,13 @@ pub mod pascal_parser {
     }
 
     impl Display for Symbol {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             match self {
                 Symbol::Var(v) => {
-                    write!(f, "{}", v.to_string())
+                    write!(f, "{}", v)
                 }
                 Symbol::Procedure(p) => {
-                    write!(f, "{}", p.to_string())
+                    write!(f, "{}", p)
                 }
             }
         }
@@ -1628,10 +1629,10 @@ pub mod pascal_parser {
     }
 
     impl Display for ScopedSymbolTable {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             let mut symbols = vec![];
             self._symbols.iter().for_each(|(name, symbol)| {
-                symbols.push(format!("{}", symbol.borrow().to_string()));
+                symbols.push(symbol.borrow().to_string());
             });
             write!(
                 f,
@@ -1656,10 +1657,8 @@ pub mod pascal_parser {
             }
         }
         pub fn _init_builtins(&mut self) {
-            let b = vec![
-                VarSymbol::set_real("REAL"),
-                VarSymbol::set_integer("INTEGER"),
-            ];
+            let b = [VarSymbol::set_real("REAL"),
+                VarSymbol::set_integer("INTEGER")];
             b.iter().for_each(|x| self.insert(Symbol::Var(x.clone())));
         }
 
@@ -1686,7 +1685,7 @@ pub mod pascal_parser {
 
         pub fn lookup_all<S: AsRef<str>>(&self, name: S) -> Option<Rc<RefCell<Symbol>>> {
             for scope in &self.scopes {
-                if let Some(s) = scope.borrow()._symbols.get(name.as_ref().clone()) {
+                if let Some(s) = scope.borrow()._symbols.get(name.as_ref()) {
                     return Some(Rc::clone(s));
                 }
             }

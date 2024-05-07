@@ -308,13 +308,13 @@ pub mod pascal_parser {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             match self {
                 Statements::Token(t) | Statements::Binop(t) | Statements::Assign(t) => {
-                    write!(f, "{}", t.to_string())
+                    write!(f, "{}", t)
                 }
                 Statements::Num { value } => {
                     write!(f, "Num: {}", value)
                 }
                 Statements::UnaryOp { token, expr } => {
-                    write!(f, "{},{:#?}", token.to_string(), expr.take())
+                    write!(f, "{},{:#?}", token, expr.take())
                 }
                 Statements::Compound { children } => {
                     write!(f, "{:#?}", children.take())
@@ -882,7 +882,7 @@ BEGIN
     x := 11;
 END.
 "
-        .to_string();
+            .to_string();
         let interpreter = |x: &str| Interpreter::new(Parser::new(Lexer::new(x))).interpret();
 
         let hash = interpreter(text.as_str());

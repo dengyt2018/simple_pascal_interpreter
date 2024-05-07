@@ -155,11 +155,9 @@ END."
 
     #[test]
     fn test_parse2() {
-        let case = vec![
-            ("3.24", 3.24),
+        let case = [("3.24", 3.24),
             ("2.14 + 7 * 4", 30.14),
-            ("7.14 - 8 / 4", 5.14),
-        ];
+            ("7.14 - 8 / 4", 5.14)];
 
         let interpret = |s: (&str, f64)| {
             let input = format!(
@@ -260,7 +258,7 @@ end.  { Main }
     fn test_input2() {
         let k = SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(INPUT2)).parser());
         k.iter().for_each(|s| {
-            eprintln!("{}\n", s.borrow().to_string());
+            eprintln!("{}\n", s.borrow());
         });
     }
 
@@ -283,6 +281,7 @@ end.  { Main }
             a := 1.5 {TODO miss semi should be panic}
         END.
         ";
+
     #[test]
     #[should_panic]
     fn test_unexpected_token() {

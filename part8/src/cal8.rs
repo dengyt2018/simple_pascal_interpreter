@@ -37,7 +37,7 @@ pub mod learn_parser {
     impl Default for Token {
         fn default() -> Self {
             Self {
-                token_type: TokenType::Eof,
+                token_type: Eof,
                 token_value: "None".to_string(),
             }
         }
@@ -208,9 +208,9 @@ pub mod learn_parser {
             right: Rc<RefCell<ASTTree>>,
         ) -> Rc<RefCell<Self>> {
             let tree = Self {
-                left: Option::Some(left),
+                left: Some(left),
                 op,
-                right: Option::Some(right),
+                right: Some(right),
                 expr: None,
             };
             let p = Rc::new(RefCell::new(tree));
@@ -225,7 +225,7 @@ pub mod learn_parser {
         pub fn set_expr(&mut self, expr: Option<ASTTree>) {
             if let Some(e) = expr {
                 let p = Rc::new(RefCell::new(e));
-                self.expr = Option::Some(Rc::clone(&p));
+                self.expr = Some(Rc::clone(&p));
             } else {
                 self.expr = None;
             }
@@ -283,19 +283,19 @@ pub mod learn_parser {
                 Plus => {
                     self.eat(Plus);
                     node.set_token(Operation::Unary(token));
-                    node.set_expr(Option::Some(self.factor()));
+                    node.set_expr(Some(self.factor()));
                     node
                 }
                 Minus => {
                     self.eat(Minus);
                     node.set_token(Operation::Unary(token));
-                    node.set_expr(Option::Some(self.factor()));
+                    node.set_expr(Some(self.factor()));
                     node
                 }
 
                 _ => panic!(
                     "factor token type why are you here? found {}",
-                    token.token_type.to_string()
+                    token.token_type
                 ),
             }
         }
@@ -382,7 +382,7 @@ pub mod learn_parser {
             token
                 .token_value
                 .parse::<i64>()
-                .unwrap_or_else(|_| panic!("Parser token value error: {}", token.to_string()))
+                .unwrap_or_else(|_| panic!("Parser token value error: {}", token))
         }
 
         fn visit_unary(&mut self, node: ASTTree) -> i64 {

@@ -175,9 +175,9 @@ pub mod learn_parser {
             right: Rc<RefCell<ASTTree>>,
         ) -> Rc<RefCell<Self>> {
             let tree = Self {
-                left: Option::Some(left),
+                left: Some(left),
                 token,
-                right: Option::Some(right),
+                right: Some(right),
             };
             let p = Rc::new(RefCell::new(tree));
 
@@ -213,9 +213,9 @@ pub mod learn_parser {
             }
 
             Self {
-                left: Option::Some(left),
+                left: Some(left),
                 token,
-                right: Option::Some(right),
+                right: Some(right),
             }
         }
     }
@@ -257,7 +257,7 @@ pub mod learn_parser {
                 }
                 _ => panic!(
                     "factor token type why are you here? found {}",
-                    token.token_type.to_string()
+                    token.token_type
                 ),
             }
         }
@@ -317,7 +317,7 @@ pub mod learn_parser {
             match node_type {
                 Mul | Div | Plus | Minus => self.visit_binop(node),
                 Integer => self.visit_num(node),
-                _ => panic!("visit error, found {}", node_type.to_string()),
+                _ => panic!("visit error, found {}", node_type),
             }
         }
 
@@ -334,7 +334,7 @@ pub mod learn_parser {
                 Plus => left + right,
                 Mul => left * right,
                 Div => left / right,
-                _ => panic!("visit binop error, found {}", op.to_string()),
+                _ => panic!("visit binop error, found {}", op),
             }
         }
 

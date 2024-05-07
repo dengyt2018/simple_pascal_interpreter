@@ -64,19 +64,19 @@ pub mod learn_parser {
 
         pub fn get_next_token(&mut self) -> Token {
             if self.pos > (self.text.len() - 1) {
-                return Token::new(TokenType::Eof, "None");
+                return Token::new(Eof, "None");
             }
 
             let c_text = self.text.as_bytes()[self.pos] as char;
 
             if c_text.is_ascii_digit() {
                 self.pos += 1;
-                return Token::new(TokenType::Integer, c_text.to_string());
+                return Token::new(Integer, c_text.to_string());
             }
 
             if c_text == '+' {
                 self.pos += 1;
-                return Token::new(TokenType::Plus, "+");
+                return Token::new(Plus, "+");
             }
 
             panic!("Error parsing input");

@@ -436,7 +436,7 @@ pub mod pascal_parser {
                 | Statements::Var(t)
                 | Statements::Assign(t)
                 | Statements::Type(t) => {
-                    write!(f, "{}", t.to_string())
+                    write!(f, "{}", t)
                 }
                 Statements::Num { value } => {
                     write!(f, "Num: {}", value)
@@ -445,7 +445,7 @@ pub mod pascal_parser {
                     write!(
                         f,
                         "unaryOp\ntoken:{}\nexpr:\n{:#?}",
-                        token.to_string(),
+                        token,
                         expr.take()
                     )
                 }
@@ -1051,16 +1051,16 @@ pub mod pascal_parser {
     }
 
     pub struct Interpreter<T>
-    where
-        T: num_traits::Float + num_traits::Num + num_traits::NumCast,
+        where
+            T: Float + Num + num_traits::NumCast,
     {
         parser: Parser,
         global_scope: Rc<RefCell<HashMap<String, T>>>,
     }
 
     impl<T> Interpreter<T>
-    where
-        T: num_traits::Float + num_traits::Num + num_traits::NumCast,
+        where
+            T: Float + Num + num_traits::NumCast,
     {
         pub fn new(parser: Parser) -> Self {
             Self {

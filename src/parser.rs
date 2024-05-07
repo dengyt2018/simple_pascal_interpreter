@@ -2,15 +2,35 @@
 
 use crate::error::PascalResult;
 use crate::object::Object;
-use crate::rc;
-use crate::rclone;
 use crate::token::*;
-use crate::{match_token, set_token};
+use crate::set_token;
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub type RefAST = Rc<RefCell<ASTTree>>;
 pub type RefASTS = Rc<RefCell<Vec<RefAST>>>;
+
+
+#[macro_export]
+macro_rules! rclone {
+    ($T: expr) => {{
+        Rc::clone($T)
+    }};
+}
+
+#[macro_export]
+macro_rules! rc {
+    ($T: expr) => {{
+        Rc::new(RefCell::new($T))
+    }};
+}
+
+#[macro_export]
+macro_rules! match_token {
+    ($self:ident, $token_type: expr) => {{
+        $self.tokens[$self.current_pos].token_type == $token_type
+    }};
+}
 
 #[derive(Debug, Clone)]
 pub enum Statements {
@@ -743,7 +763,6 @@ impl<'a> Parser<'a> {
     ///
     fn expr(&mut self) -> ASTTree {
         let mut node = self.term();
-
         while match_token!(self, TokenType::Plus) || match_token!(self, TokenType::Minus) {
             let token = self.tokens[self.current_pos].clone();
             if token.token_type == TokenType::Plus {
@@ -812,30 +831,11 @@ impl<'a> Parser<'a> {
             let token = self.tokens[self.current_pos].clone();
             PascalResult::parse_error(
                 &token,
-                format!("Parser {}", token.error(ErrorCode::UnexpectedToken),),
+                format!("Parser {}", token.error(ErrorCode::UnexpectedToken), ),
             );
         }
         node
     }
 }
 
-#[macro_export]
-macro_rules! rclone {
-    ($T: expr) => {{
-        Rc::clone($T)
-    }};
-}
 
-#[macro_export]
-macro_rules! rc {
-    ($T: expr) => {{
-        Rc::new(RefCell::new($T))
-    }};
-}
-
-#[macro_export]
-macro_rules! match_token {
-    ($self:ident, $token_type: expr) => {{
-        $self.tokens[$self.current_pos].token_type == $token_type
-    }};
-}

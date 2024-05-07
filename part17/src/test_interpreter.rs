@@ -1,7 +1,6 @@
 #[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 mod tests {
-
     use crate::spi17::pascal_parser::*;
     use std::fs::File;
     use std::io::Read;
@@ -108,8 +107,8 @@ END."
             .to_string();
         let mut interpreter = Interpreter::new(Parser::new(Lexer::new(str)));
         interpreter.interpret();
-        let mut a = i64::max_value();
-        if let Some(ar) = interpreter.call_stack.recodes_debug.get(0) {
+        let mut a = i64::MAX;
+        if let Some(ar) = interpreter.call_stack.recodes_debug.first() {
             if let Some(var) = ar.borrow().get_item("a") {
                 a = *var as i64;
             }
@@ -153,8 +152,8 @@ END."
         case.iter().for_each(|(input, var)| {
             let mut i = interpret(input, *var);
             i.interpret();
-            let mut a = i32::max_value();
-            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+            let mut a = i32::MAX;
+            if let Some(ar) = i.call_stack.recodes_debug.first() {
                 if let Some(v) = ar.borrow().get_item("a") {
                     a = *v as i32;
                 }
@@ -165,11 +164,9 @@ END."
 
     #[test]
     fn test_parse2() {
-        let case = vec![
-            ("3.24", 3.24),
+        let case = [("3.24", 3.24),
             ("2.14 + 7 * 4", 30.14),
-            ("7.14 - 8 / 4", 5.14),
-        ];
+            ("7.14 - 8 / 4", 5.14)];
 
         let interpret = |s: (&str, f64)| {
             let input = format!(
@@ -190,7 +187,7 @@ END."
             let mut i = interpret((x.0, x.1));
             i.interpret();
             let mut a = 0.0;
-            if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+            if let Some(ar) = i.call_stack.recodes_debug.first() {
                 if let Some(v) = ar.borrow().get_item("a") {
                     a = *v;
                 }
@@ -232,7 +229,7 @@ END.  {Part12}";
         let mut i = Interpreter::new(Parser::new(Lexer::new(INPUT)));
         i.interpret();
 
-        if let Some(ar) = i.call_stack.recodes_debug.get(0) {
+        if let Some(ar) = i.call_stack.recodes_debug.first() {
             let a = *ar.borrow().get_item("a").unwrap();
             let b = *ar.borrow().get_item("b").unwrap();
             let y = *ar.borrow().get_item("y").unwrap();
@@ -278,11 +275,12 @@ END.  {Part12}";
 begin { Main }
 end.  { Main }
 ";
+
     #[test]
     fn test_input2() {
         let k = SemanticAnalyzer::new()._visit(Parser::new(Lexer::new(INPUT2)).parser());
         k.iter().for_each(|s| {
-            eprintln!("{}\n", s.borrow().to_string());
+            eprintln!("{}\n", s.borrow());
         });
     }
 

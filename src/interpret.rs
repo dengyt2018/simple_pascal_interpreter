@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types, dead_code, unused)]
+
 use crate::error::PascalResult;
-use crate::obj;
 use crate::object::Object;
 use crate::parser::{ASTTree, RefAST, Statements};
 use crate::semantic::{ScopedSymbolTable, SymbolType};
@@ -10,6 +10,19 @@ use std::cell::RefCell;
 use std::collections::{HashMap, LinkedList};
 use std::ops::{Deref, Neg};
 use std::rc::Rc;
+
+#[macro_export]
+macro_rules! obj {
+    ($ob: ident, $token: ident) => {
+        match $ob {
+            Ok(o) => o,
+            Err(msg) => {
+                PascalResult::runtime_error(&$token, msg);
+                panic!()
+            }
+        }
+    };
+}
 
 #[derive(Debug)]
 pub enum ARType {
@@ -369,15 +382,4 @@ scope: {} value: {}, have no define in correct place."#,
     }
 }
 
-#[macro_export]
-macro_rules! obj {
-    ($ob: ident, $token: ident) => {
-        match $ob {
-            Ok(o) => o,
-            Err(msg) => {
-                PascalResult::runtime_error(&$token, msg);
-                panic!()
-            }
-        }
-    };
-}
+

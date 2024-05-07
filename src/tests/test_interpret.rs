@@ -1,16 +1,15 @@
-#[allow(dead_code, unused, unused_variables, unused_imports)]
 #[cfg(test)]
 pub mod tests {
-    use crate::error::init_log::init_log;
+    use std::cell::RefCell;
+    use std::fs::File;
+    use std::io::Read;
+    use std::rc::Rc;
+
     use crate::interpret::Interpreter;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
     use crate::rc;
     use crate::semantic::SemanticAnalyzer;
-    use std::cell::RefCell;
-    use std::fs::File;
-    use std::io::Read;
-    use std::rc::Rc;
 
     #[test]
     fn test_stack() {
@@ -31,7 +30,7 @@ END."
 
         interpret.interpret();
 
-        let d = interpret.call_stack.recodes_debug.get(0).unwrap().clone();
+        let d = interpret.call_stack.recodes_debug.first().unwrap().clone();
         let m = d.borrow().members.clone();
 
         assert_eq!(138, m.get("a").unwrap().get_integer_const());
@@ -55,7 +54,7 @@ END."
             ("5 - - - + - 3", 8),
             ("5 - - - + - (3 + 4) - +2", 10),
         ];
-        let interpret = |input: &str, var: i64| {
+        let interpret = |_input: &str, var: i64| {
             let input = format!(
                 "
         PROGRAM Test;
@@ -78,7 +77,7 @@ END."
         case.iter().for_each(|(x, y)| {
             let mut i = interpret(x, *y);
             i.interpret();
-            let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let d = i.call_stack.recodes_debug.first().unwrap().clone();
             let m = d.borrow().members.clone();
 
             assert_eq!(*y, m.get("a").unwrap().get_integer_const());
@@ -87,11 +86,9 @@ END."
 
     #[test]
     fn test_parse2() {
-        let case = vec![
-            ("3.24", 3.24),
+        let case = [("3.24", 3.24),
             ("2.14 + 7 * 4", 30.14),
-            ("7.14 - 8 / 4", 5.14),
-        ];
+            ("7.14 - 8 / 4", 5.14)];
 
         let interpret = |s: (&str, f64)| {
             let input = format!(
@@ -116,7 +113,7 @@ END."
         case.iter().for_each(|(x, y)| {
             let mut i = interpret((x, *y));
             i.interpret();
-            let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let d = i.call_stack.recodes_debug.first().unwrap().clone();
             let m = d.borrow().members.clone();
 
             assert_eq!(*y, m.get("a").unwrap().get_real_const());
@@ -164,7 +161,7 @@ END.  {Part12}"#;
 
         i.interpret();
 
-        let d = i.call_stack.recodes_debug.get(0).unwrap().clone();
+        let d = i.call_stack.recodes_debug.first().unwrap().clone();
         let m = d.borrow().members.clone();
 
         let a = m.get("a").unwrap().get_integer_const();
@@ -213,12 +210,13 @@ END.  {Part12}"#;
 begin { Main }
 end.  { Main }
 ";
+
     #[test]
     fn test_input2() {
         let tokens = Lexer::new(INPUT2).get_tokens();
         let k = SemanticAnalyzer::new()._visit(rc!(Parser::new(&tokens).parser()));
         k.iter().for_each(|s| {
-            eprintln!("{}\n", s.borrow().to_string());
+            eprintln!("{}\n", s.borrow());
         });
     }
 
@@ -275,7 +273,7 @@ end.  { Main }
     #[test]
     fn test_proccall() {
         let path = "./src/tests/test2.pas";
-        let test_cases = vec![("a", 8), ("b", 7), ("x", 30)];
+        let test_cases = [("a", 8), ("b", 7), ("x", 30)];
 
         if let Ok(mut file) = File::open(path) {
             let mut buff = String::new();
@@ -334,7 +332,7 @@ end.  { Main }
             assert_eq!(10, b);
             assert_eq!(70, x);
 
-            let s = i.call_stack.recodes_debug.get(0).unwrap().clone();
+            let s = i.call_stack.recodes_debug.first().unwrap().clone();
             let s = s.borrow().members.clone().get("s").unwrap().get_string();
             assert_eq!("hello world!".to_string(), s);
         } else {
@@ -361,7 +359,7 @@ END."#
 
         interpret.interpret();
 
-        let d = interpret.call_stack.recodes_debug.get(0).unwrap().clone();
+        let d = interpret.call_stack.recodes_debug.first().unwrap().clone();
         let m = d.borrow().members.clone();
 
         assert_eq!("ABCADCAFC15".to_string(), m.get("a").unwrap().get_string());
